@@ -1,0 +1,80 @@
+name: 수집 & 배포
+
+on:
+  # 매시 07분에 tikple 데이터 수집 후 배포
+  schedule:
+    - cron: "7 * * * *"
+  # index.html / collect.js 등을 고치고 push 하면 바로 재배포
+  push:
+    branches: [main]
+    paths-ignore:
+      - "README.md"
+      - "**/*.md"
+  # Actions 탭에서 수동 실행
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 배포는 한 번에 하나만. 진행 중인 배포를 취소하지 않음(데이터 유실 방지)
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Node 설치
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # 지난 실행이 받아둔 data/ 를 복원 (avatars 캐시·틱두 컷 유지)
+      - name: 데이터 캐시 복원
+        uses: actions/cache/restore@v4
+        with:
+          path: data
+          key: offair-data-${{ github.run_id }}
+          restore-keys: |
+            offair-data-
+
+      # tikple 랭킹·사진·호스트 상세 수집. 실패해도 배포는 계속(캐시/시드 데이터 사용)
+      - name: 데이터 수집
+        run: node collect.js --photos 400 || echo "::warning::collect.js 실패 — 이전 데이터로 배포합니다"
+
+      - name: 데이터 캐시 저장
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: data
+          key: offair-data-${{ github.run_id }}
+
+      - name: 사이트 폴더 구성
+        run: |
+          mkdir -p _site/data
+          cp index.html _site/
+          cp robots.txt _site/ 2>/dev/null || true
+          cp -r data/. _site/data/ 2>/dev/null || true
+          touch _site/.nojekyll
+
+      - name: Pages 아티팩트 업로드
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: GitHub Pages 배포
+        id: deployment
+        uses: actions/deploy-pages@v4

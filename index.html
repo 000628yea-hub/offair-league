@@ -1,0 +1,2244 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OFF-AIR 리그 조각 계산기</title>
+<meta name="description" content="TikTok LIVE 크리에이터 리그 조각·승급 계산. 리그별 랭킹, 컷라인, 우리 호스트 대시보드. OFF-AIR E&M 운영팀.">
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#0F0E10" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F6F4F1" media="(prefers-color-scheme: light)">
+<meta property="og:title" content="OFF-AIR 리그 조각 계산기">
+<meta property="og:description" content="리그 조각·승급 계산 + 리그별 랭킹 + 우리 호스트 대시보드">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23E24A32'/%3E%3Cpath d='M16 6l3 7 7-1-5 5 2 8-7-4-7 4 2-8-5-5 7 1z' fill='%23F5B841'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&display=swap">
+
+<style>
+/* ─────────────────────────────────────────────
+   OFF-AIR E&M · TikTok LIVE 리그 승급 시뮬레이터
+   모바일 우선 · 다크 우선 · 라이트 대응
+   ───────────────────────────────────────────── */
+:root{
+  color-scheme: dark;
+  --ground:#0F0E10;
+  --glow-a:#33141A;
+  --glow-b:#1A1114;
+  --surface:#17161A;
+  --surface-2:#1E1D22;
+  --bar:rgba(17,16,19,.82);
+  --line:rgba(255,255,255,.075);
+  --line-strong:rgba(255,255,255,.14);
+  --ink:#F4EFEE;
+  --ink-2:#C9BFBD;
+  --muted:#918684;
+  --brand:#E24A32;
+  --brand-hot:#FF6146;
+  --brand-tint:rgba(226,74,50,.14);
+  --shard:#F5B841;
+  --shard-soft:rgba(245,184,65,.14);
+  --keep:#93A7B7;
+  --up:#4FD1A5;
+  --danger:#FF6161;
+  --danger-soft:rgba(255,97,97,.13);
+  --field:#1B1A1F;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 12px 34px -18px rgba(0,0,0,.65);
+  --shadow-sm:0 1px 2px rgba(0,0,0,.35);
+  --r:16px;
+  --r-sm:11px;
+  --r-lg:20px;
+  --ease:cubic-bezier(.4,0,.2,1);
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    color-scheme: light;
+    --ground:#F6F4F1; --glow-a:#F2E1DC; --glow-b:#F7F1EE;
+    --surface:#FFFFFF; --surface-2:#F8F5F2; --bar:rgba(255,255,255,.82);
+    --line:#EAE4DE; --line-strong:#DED4CC;
+    --ink:#211C19; --ink-2:#5A4F49; --muted:#938880;
+    --brand:#CB3C22; --brand-hot:#E24A32; --brand-tint:rgba(203,60,34,.08);
+    --shard:#B0740A; --shard-soft:rgba(176,116,10,.1);
+    --keep:#5B7183; --up:#0E7C58; --danger:#C93030; --danger-soft:rgba(201,48,48,.08);
+    --field:#FFFFFF;
+    --shadow:0 1px 2px rgba(40,25,20,.06), 0 14px 34px -20px rgba(60,35,25,.22);
+    --shadow-sm:0 1px 2px rgba(40,25,20,.07);
+  }
+}
+:root[data-theme="light"]{
+  color-scheme: light;
+  --ground:#F6F4F1; --glow-a:#F2E1DC; --glow-b:#F7F1EE;
+  --surface:#FFFFFF; --surface-2:#F8F5F2; --bar:rgba(255,255,255,.82);
+  --line:#EAE4DE; --line-strong:#DED4CC;
+  --ink:#211C19; --ink-2:#5A4F49; --muted:#938880;
+  --brand:#CB3C22; --brand-hot:#E24A32; --brand-tint:rgba(203,60,34,.08);
+  --shard:#B0740A; --shard-soft:rgba(176,116,10,.1);
+  --keep:#5B7183; --up:#0E7C58; --danger:#C93030; --danger-soft:rgba(201,48,48,.08);
+  --field:#FFFFFF;
+  --shadow:0 1px 2px rgba(40,25,20,.06), 0 14px 34px -20px rgba(60,35,25,.22);
+  --shadow-sm:0 1px 2px rgba(40,25,20,.07);
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  background:
+    radial-gradient(900px 480px at 85% -10%, var(--glow-a) 0%, transparent 55%),
+    var(--ground);
+  background-attachment:fixed;
+  color:var(--ink);
+  font-family:Pretendard,'Pretendard Variable','Apple SD Gothic Neo','Malgun Gothic',system-ui,-apple-system,sans-serif;
+  font-size:15px; line-height:1.65; letter-spacing:-.01em;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  word-break:keep-all;
+}
+body.hasbar{padding-bottom:92px}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px 72px}
+.num{font-family:'IBM Plex Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
+button{transition:background .15s var(--ease),border-color .15s var(--ease),color .15s var(--ease),transform .08s var(--ease)}
+button:active{transform:translateY(1px)}
+
+.hero{position:relative;overflow:hidden;margin:22px 0 34px;padding:26px 32px 30px;
+  border-radius:26px;border:1px solid var(--line);box-shadow:var(--shadow);
+  background:
+    radial-gradient(130% 150% at 100% 0%, var(--brand-tint) 0%, transparent 52%),
+    linear-gradient(178deg, var(--surface) 0%, var(--surface-2) 100%)}
+.hero::after{content:"";position:absolute;right:-70px;top:-90px;width:240px;height:240px;pointer-events:none;
+  background:radial-gradient(circle, var(--shard-soft) 0%, transparent 68%);}
+.hero > *{position:relative}
+.brandline{display:flex;align-items:center;gap:11px;margin-bottom:26px}
+.mark{width:32px;height:32px;border-radius:10px;flex:none;
+  background:linear-gradient(150deg,var(--brand-hot),var(--brand));
+  display:grid;place-items:center;color:#fff;font-weight:700;font-size:12px;letter-spacing:.5px;
+  box-shadow:0 8px 22px -10px var(--brand)}
+.brandname{font-weight:700;font-size:12px;letter-spacing:.12em;color:var(--ink-2);line-height:1.35}
+.brandname span{display:block;color:var(--muted);font-weight:500;letter-spacing:.02em;font-size:11px}
+.themebtn{margin-left:auto;background:var(--surface);border:1px solid var(--line);color:var(--ink-2);
+  border-radius:999px;padding:8px 15px;font:inherit;font-size:12.5px;cursor:pointer;min-height:38px;box-shadow:var(--shadow-sm)}
+.themebtn:hover{border-color:var(--line-strong);color:var(--ink)}
+
+.eyebrow{font-size:10.5px;letter-spacing:.2em;font-weight:700;color:var(--brand);text-transform:uppercase;margin:0 0 13px}
+h1{font-size:clamp(30px,7.2vw,46px);line-height:1.06;margin:0 0 14px;font-weight:800;letter-spacing:-.035em;text-wrap:balance}
+h1 .hl{color:var(--brand)}
+.lede{margin:0;max-width:46ch;color:var(--ink-2);font-size:14.5px;line-height:1.7}
+.lede b{color:var(--ink);font-weight:600}
+.herochips{display:flex;flex-wrap:wrap;gap:7px;margin-top:22px}
+.herochips span{font-size:11.5px;font-weight:600;color:var(--ink-2);background:var(--surface);
+  border:1px solid var(--line);border-radius:999px;padding:6px 12px;display:inline-flex;align-items:center;gap:5px}
+.herochips span::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--brand);flex:none}
+.herochips span:nth-child(2)::before{background:var(--shard)}
+.herochips span:nth-child(3)::before{background:var(--keep)}
+.herochips span:nth-child(4)::before{background:var(--up)}
+
+.grid{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:20px;align-items:start}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:24px;box-shadow:var(--shadow)}
+.panel > h2{font-size:11px;font-weight:600;letter-spacing:.14em;color:var(--muted);margin:0 0 20px;text-transform:uppercase}
+
+.field{display:flex;flex-direction:column;gap:7px;margin-bottom:18px}
+.field label{font-size:12.5px;font-weight:600;color:var(--ink-2)}
+.field .hint{font-size:11.5px;color:var(--muted);line-height:1.5}
+input[type=number],input[type=text],select,textarea{
+  width:100%;background:var(--field);border:1px solid var(--line-strong);border-radius:var(--r-sm);
+  padding:12px 13px;color:var(--ink);font:inherit;font-size:16px;min-height:48px;
+  font-family:'IBM Plex Mono',Pretendard,monospace;font-variant-numeric:tabular-nums;
+  transition:border-color .15s var(--ease),box-shadow .15s var(--ease)}
+input:hover,select:hover,textarea:hover{border-color:var(--muted)}
+select{font-family:Pretendard,sans-serif;font-weight:600;appearance:none;
+  background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+  background-position:calc(100% - 20px) calc(1.25em),calc(100% - 15px) calc(1.25em);
+  background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:38px}
+textarea{min-height:150px;line-height:1.6;font-size:14px;resize:vertical}
+input:focus-visible,select:focus-visible,button:focus-visible,textarea:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
+input:focus,select:focus,textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-tint)}
+input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+input[type=number]{-moz-appearance:textfield}
+
+.stepper{display:grid;grid-template-columns:48px 1fr 48px;gap:7px}
+.stepper button{background:var(--field);border:1px solid var(--line-strong);color:var(--ink);border-radius:var(--r-sm);
+  font:inherit;font-size:19px;font-weight:600;cursor:pointer;min-height:48px;line-height:1}
+.stepper button:hover{border-color:var(--muted);background:var(--surface-2)}
+
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:3px;background:var(--surface-2);
+  border-radius:13px;padding:4px;margin-bottom:18px}
+.seg button{background:transparent;border:0;color:var(--muted);font:inherit;font-size:13.5px;font-weight:600;
+  padding:11px 6px;border-radius:10px;cursor:pointer;min-height:44px}
+.seg button:hover{color:var(--ink)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--brand);box-shadow:var(--shadow-sm)}
+.seg3{grid-template-columns:1fr 1fr 1fr}
+@media (max-width:520px){.seg3{grid-template-columns:1fr;gap:3px}}
+
+.shardpick{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.shardpick button{background:var(--surface-2);border:1.5px solid transparent;color:var(--ink-2);
+  border-radius:var(--r-sm);padding:0;font:inherit;font-weight:700;font-size:16px;cursor:pointer;min-height:48px;
+  font-family:'IBM Plex Mono',monospace}
+.shardpick button:hover{background:var(--field);border-color:var(--line-strong)}
+.shardpick button[aria-pressed="true"]{border-color:var(--shard);color:var(--shard);background:var(--shard-soft)}
+.check{display:flex;gap:11px;align-items:flex-start;font-size:13px;color:var(--ink-2);cursor:pointer;
+  background:var(--surface-2);border-radius:12px;padding:13px 14px}
+.check input{margin-top:3px;width:18px;height:18px;accent-color:var(--brand);flex:none}
+
+.verdict{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:20px}
+.delta{min-width:104px;flex:0 0 auto;padding:16px 20px;border-radius:16px;text-align:center;
+  background:var(--surface-2);display:flex;flex-direction:column;justify-content:center}
+.delta .big{font-family:'IBM Plex Mono',monospace;font-size:44px;font-weight:700;line-height:1;letter-spacing:-.04em;color:var(--keep)}
+.delta .cap{font-size:11px;color:var(--muted);margin-top:6px;letter-spacing:.03em}
+.delta.gain{background:var(--shard-soft)} .delta.gain .big{color:var(--shard)}
+.delta.loss{background:var(--danger-soft)} .delta.loss .big{color:var(--danger)}
+.vtext{flex:1 1 200px;min-width:0}
+.vtext h3{margin:0 0 6px;font-size:19px;font-weight:700;letter-spacing:-.02em;text-wrap:balance;line-height:1.35}
+.vtext p{margin:0;color:var(--ink-2);font-size:13.5px;line-height:1.55}
+
+/* 다음 목표 — 결과에서 가장 크게 */
+.nextgoal{display:flex;align-items:baseline;gap:8px 12px;flex-wrap:wrap;
+  background:var(--brand-tint);border-radius:14px;padding:16px 18px;margin-bottom:18px}
+.nextgoal .ng-k{font-size:12px;font-weight:600;color:var(--brand)}
+.nextgoal .ng-v{font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:700;letter-spacing:-.03em;color:var(--ink)}
+.nextgoal .ng-s{flex-basis:100%;font-size:12.5px;color:var(--ink-2)}
+.nextgoal.done{background:var(--shard-soft)}
+.nextgoal.done .ng-k{color:var(--shard)}
+
+.gauge{display:flex;gap:5px;margin:0 0 18px}
+.cell{flex:1;height:34px;border-radius:9px;background:var(--surface-2);display:grid;place-items:center;font-size:12px;color:var(--line-strong)}
+.cell.on{background:var(--shard-soft);color:var(--shard)}
+.cell.next{background:var(--brand-tint);color:var(--brand);font-size:11px;font-weight:600}
+
+.stats{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.stat{flex:1 1 130px;background:var(--surface-2);border-radius:13px;padding:13px 14px}
+.stat[hidden]{display:none}
+.stat .l{font-size:10.5px;letter-spacing:.04em;color:var(--muted);margin-bottom:5px;text-transform:uppercase}
+.stat .v{font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.02em;line-height:1.2}
+.stat .s{font-size:11.5px;color:var(--muted);margin-top:4px;line-height:1.45}
+.stat.warn .v{color:var(--danger)}
+.stat.good .v{color:var(--shard)}
+
+.resultnote{margin:0;color:var(--muted);font-size:11.5px;line-height:1.6;padding-top:2px}
+details.fold.subtle{margin-top:16px;border-top:1px solid var(--line);padding-top:16px}
+details.fold.subtle > summary{padding:0;background:none;border:0;box-shadow:none;border-radius:0}
+details.fold.subtle > summary h4{font-size:11px;letter-spacing:.1em;color:var(--muted);font-weight:600;text-transform:uppercase;margin:0}
+details.fold.subtle > summary:hover h4{color:var(--ink-2)}
+details.fold.subtle[open] > summary{margin-bottom:8px}
+details.fold.subtle .ladder{border-top:0;margin-top:8px;padding-top:0}
+
+.cutline{border-top:1px solid var(--line);margin-top:20px;padding-top:18px}
+.cutline .ct{font-size:11px;letter-spacing:.04em;color:var(--muted);font-weight:600;text-transform:uppercase;margin-bottom:12px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.cutline .ct .src{text-transform:none;letter-spacing:0;font-weight:400}
+.cutgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.cutgrid .cg{background:var(--surface-2);border-radius:12px;padding:11px 8px;text-align:center}
+.cutgrid .cg.hit{background:var(--shard-soft);outline:1.5px solid var(--shard)}
+.cutgrid .cg .cgk{font-size:10.5px;color:var(--muted);margin-bottom:4px}
+.cutgrid .cg .cgv{font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:14.5px;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.cutgrid .cg.hit .cgv{color:var(--shard)}
+.cutgrid .cg .cgd{font-size:10px;color:var(--muted);margin-top:3px}
+.cutline .none{font-size:12.5px;color:var(--muted);line-height:1.55;margin:0}
+@media (max-width:680px){.cutgrid{grid-template-columns:1fr 1fr}}
+.ladder{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:16px;margin-top:16px}
+.pill{border:1px solid var(--line-strong);border-radius:999px;padding:5px 13px;font-weight:700;
+  font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ink-2)}
+.pill.now{border-color:var(--brand);color:var(--brand);background:var(--brand-tint)}
+.pill.up{border-color:var(--shard);color:var(--shard)}
+
+.tl{margin-top:16px;border-top:1px solid var(--line);padding-top:16px}
+.tl h4{margin:0 0 12px;font-size:11px;letter-spacing:.1em;color:var(--muted);font-weight:600;text-transform:uppercase}
+.tl .empty{margin:0;color:var(--muted);font-size:13px;line-height:1.55}
+.tlrow{display:grid;grid-template-columns:62px 1fr auto;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
+.tlrow:last-child{border-bottom:0}
+.tlrow .d{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)}
+.bars{display:flex;gap:4px}
+.bar{width:22px;height:8px;border-radius:3px;background:var(--line-strong)}
+.bar.on{background:var(--shard)}
+.bar.shield{background:var(--keep)}
+.tlrow .r{text-align:right;font-size:12.5px;font-weight:600;color:var(--ink-2);white-space:nowrap}
+.tlrow.hit .r{color:var(--shard)}
+.tlrow.bad .r{color:var(--danger)}
+
+.resultbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;border-top:1px solid var(--line);padding-top:16px}
+.btn{background:var(--brand);border:1px solid var(--brand);color:#fff;font:inherit;font-weight:600;font-size:13.5px;
+  padding:11px 18px;border-radius:var(--r-sm);cursor:pointer;min-height:44px;box-shadow:0 6px 16px -8px var(--brand)}
+.btn:hover{background:var(--brand-hot);border-color:var(--brand-hot)}
+.btn.ghost{background:transparent;color:var(--ink-2);border-color:var(--line-strong);box-shadow:none}
+.btn.ghost:hover{background:var(--surface-2);color:var(--ink);border-color:var(--muted)}
+
+section.block{margin-top:38px}
+details.fold > summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:15px 18px;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow-sm)}
+details.fold > summary::-webkit-details-marker{display:none}
+details.fold > summary::after{content:"";width:6px;height:6px;border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);
+  transform:rotate(-45deg);transition:transform .15s var(--ease);flex:none;margin-left:auto}
+details.fold[open] > summary::after{transform:rotate(45deg)}
+details.fold > summary:hover{border-color:var(--line-strong)}
+details.fold > summary h2{font-size:14.5px;margin:0;font-weight:700;letter-spacing:-.015em}
+details.fold[open] > summary{border-radius:14px 14px 0 0;border-bottom:0}
+details.fold[open] > .panel{border-radius:0 0 14px 14px;border-top:0;box-shadow:none}
+section.block > h2{font-size:18px;font-weight:700;margin:0 0 8px;letter-spacing:-.025em;
+  display:flex;align-items:center;gap:9px}
+section.block > h2::before{content:"";width:3px;height:15px;border-radius:2px;background:var(--brand);flex:none}
+section.block > .sub{margin:0 0 18px;color:var(--muted);font-size:13px;max-width:64ch;line-height:1.65}
+section.block > .sub b{color:var(--ink-2);font-weight:600}
+
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);-webkit-overflow-scrolling:touch;box-shadow:var(--shadow-sm)}
+table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:640px}
+th,td{padding:11px 15px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap;vertical-align:top}
+th:first-child,td:first-child{text-align:left}
+thead th{font-size:11px;letter-spacing:.05em;color:var(--muted);font-weight:600;background:var(--surface-2);text-transform:uppercase}
+tbody tr:last-child td{border-bottom:0}
+tbody td{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;color:var(--ink)}
+tbody td:first-child{font-family:Pretendard,sans-serif;font-weight:600}
+tbody tr:hover td{background:var(--surface-2)}
+tr.rowon td{background:var(--brand-tint)!important}
+.cutv{font-weight:600}
+.cutmeta{display:block;font-family:Pretendard,sans-serif;font-size:10.5px;color:var(--muted);font-weight:400;margin-top:2px}
+.dl{color:var(--muted);font-family:Pretendard,sans-serif;font-weight:400}
+.up{color:var(--up)} .down{color:var(--danger)}
+td .no{color:var(--muted);font-family:Pretendard,sans-serif;font-size:12.5px;font-weight:400}
+
+.cutcard{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
+.cutcard .field{margin:0}
+.cutbar{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-top:14px}
+.savenote{font-size:12.5px;color:var(--muted);flex:1 1 200px;min-width:0}
+.preview{margin-top:12px;border-top:1px solid var(--line);padding-top:12px;display:none}
+.preview.on{display:block}
+.prow{display:flex;justify-content:space-between;gap:12px;font-size:13px;padding:5px 0;border-bottom:1px solid var(--line)}
+.prow:last-child{border-bottom:0}
+.prow b{font-family:'IBM Plex Mono',monospace;font-weight:600}
+.prow span{color:var(--muted)}
+
+.none{font-size:12.5px;color:var(--muted);line-height:1.55;margin:0}
+.faq{display:grid;grid-template-columns:repeat(3,1fr);gap:11px}
+.fcard{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 17px;box-shadow:var(--shadow-sm)}
+.fcard h4{margin:0 0 6px;font-size:14px;font-weight:700;letter-spacing:-.01em}
+.fcard p{margin:0;font-size:13px;color:var(--ink-2);line-height:1.6}
+.fcard .tag{display:inline-block;font-size:10.5px;letter-spacing:.06em;color:var(--brand);font-weight:600;margin-bottom:8px;text-transform:uppercase}
+
+.formula{background:var(--surface-2);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-top:14px;
+  font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ink-2);overflow-x:auto;line-height:2}
+.formula b{color:var(--brand);font-weight:600}
+
+#sharebox{display:none;margin-top:12px}
+#sharebox textarea{min-height:150px;font-family:'IBM Plex Mono',monospace;font-size:13px}
+#sharebox p{margin:0 0 8px;font-size:12.5px;color:var(--muted)}
+
+.leaguetabs{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px}
+.leaguetabs button{background:var(--field);border:1px solid var(--line-strong);color:var(--ink-2);
+  border-radius:9px;padding:6px 11px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;min-height:34px;
+  font-family:'IBM Plex Mono',monospace}
+.leaguetabs button:hover{border-color:var(--muted);color:var(--ink)}
+.leaguetabs button[aria-pressed="true"]{background:var(--brand);border-color:var(--brand);color:#fff;box-shadow:0 4px 12px -5px var(--brand)}
+.leaguetabs .grp{flex-basis:100%;height:0}
+.rankctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+#rankScroll{max-height:560px;overflow-y:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+
+/* 우리 호스트 대시보드 */
+#rosterScroll{max-height:620px;overflow:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+.rtab{width:100%;border-collapse:collapse;font-size:13px;min-width:720px}
+.rtab thead th{position:sticky;top:0;z-index:1;background:var(--surface-2);color:var(--muted);
+  font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;text-align:right;
+  padding:10px 12px;border-bottom:1px solid var(--line-strong);white-space:nowrap}
+.rtab thead th:first-child{text-align:left}
+.rtab tbody td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap;
+  font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;color:var(--ink-2)}
+.rtab tbody tr{cursor:pointer;transition:background .12s var(--ease)}
+.rtab tbody tr:hover{background:var(--brand-tint)}
+.rtab tbody tr:last-child td{border-bottom:0}
+.rtab td.rname{text-align:left;font-family:Pretendard,sans-serif}
+.rn{display:flex;align-items:center;gap:9px;min-width:0}
+.rn .hn{display:flex;flex-direction:column;line-height:1.25;min-width:0}
+.rn .hn b{font-weight:600;font-size:13px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
+.rn .hn i{font-style:normal;font-size:10.5px;color:var(--muted);font-family:'IBM Plex Mono',monospace;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
+.rtab td.big{color:var(--ink);font-weight:600}
+.rtab .eff strong{color:var(--ink);font-weight:700}
+.rtab .eff.lo strong{color:var(--danger)}
+.rtab .eff.hi strong{color:var(--up)}
+.rtab .trend .u{color:var(--up)} .rtab .trend .d{color:var(--danger)}
+.rtab .osea.hot{color:var(--danger);font-weight:700}
+.rlg{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;color:var(--brand);
+  border:1px solid var(--line-strong);border-radius:7px;padding:1px 6px}
+.rflag{display:inline-flex;gap:4px;align-items:center}
+.rflag span{font-size:15px;line-height:1}
+.rmiss{color:var(--muted);font-style:italic;font-family:Pretendard,sans-serif;font-size:11.5px}
+.rlegend{display:flex;flex-wrap:wrap;gap:14px;margin-top:12px;font-size:11.5px;color:var(--muted);line-height:1.5}
+.rlegend b{font-weight:600;color:var(--ink-2)}
+@media (max-width:680px){
+  .rtab{font-size:12px}
+  .rtab thead th,.rtab tbody td{padding:8px 9px}
+}
+
+/* 리그별 랭킹 — 리스트 행 */
+.rrow{display:grid;grid-template-columns:32px 34px minmax(0,1fr) auto auto 14px;align-items:center;gap:11px;
+  padding:9px 14px;border-bottom:1px solid var(--line);cursor:pointer;
+  transition:background .12s var(--ease)}
+.rrow:last-child{border-bottom:0}
+.rrow:hover,.rrow:focus-visible{background:var(--brand-tint);outline:none}
+.rrow:focus-visible{box-shadow:inset 0 0 0 2px var(--brand)}
+.rrow.cutrow{background:var(--shard-soft)}
+.rrow.cutrow:hover{background:var(--shard-soft)}
+.rrow.mine{background:var(--brand-tint);box-shadow:inset 3px 0 0 var(--brand)}
+.rrow .rk{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;color:var(--muted);text-align:right;
+  display:flex;flex-direction:column;align-items:flex-end;line-height:1.1}
+.rrow.mine .rk{color:var(--brand)}
+.rrow .rk em{font-style:normal;font-size:9px;font-weight:600;color:var(--brand)}
+.rrow .hn{display:flex;flex-direction:column;min-width:0;line-height:1.25;text-align:left}
+.rrow .hn b{font-weight:600;font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--ink);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rrow .hn i{font-style:normal;font-size:11px;color:var(--muted);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rrow .rk{grid-column:1}
+.rrow .avwrap,.rrow > .av{grid-column:2}
+.rrow .hn{grid-column:3}
+.rrow .rdia{grid-column:4;font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:var(--ink);
+  font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
+.rrow .rbadge{grid-column:5;display:flex;min-width:0}
+.rrow .rbadge:empty{display:none}
+.rrow .goarrow{grid-column:6}
+.rrow .goarrow{color:var(--line-strong);font-size:17px;font-weight:700;line-height:1;text-align:center}
+.rrow:hover .goarrow{color:var(--brand)}
+.livedot{display:inline-block;width:6px;height:6px;border-radius:50%;flex:none;
+  background:var(--brand-hot);vertical-align:middle;box-shadow:0 0 0 3px var(--brand-tint)}
+.fragb{display:inline-block;font-family:Pretendard,sans-serif;font-size:10.5px;font-weight:600;
+  padding:2px 8px;border-radius:999px;border:1px solid var(--shard);color:var(--shard);white-space:nowrap}
+.fragb.f0{border-color:var(--keep);color:var(--keep)}
+.avwrap{position:relative;width:34px;height:34px;flex:none}
+.avwrap .av{position:absolute;inset:0}
+.av{width:34px;height:34px;border-radius:50%;flex:none;object-fit:cover;
+  display:grid;place-items:center;font-family:Pretendard,sans-serif;font-weight:700;font-size:13px;
+  color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.35);background:var(--surface-2);border:1px solid var(--line)}
+/* 컷 표(오늘의 컷 데이터·랭킹 미리보기)에서 쓰던 hostbox 는 유지 */
+.hostbox{display:flex;align-items:center;gap:10px;min-width:0;text-align:left}
+.hn{display:flex;flex-direction:column;min-width:0;line-height:1.28}
+.goarrow{flex:none}
+
+.stickybar{position:fixed;left:0;right:0;bottom:0;z-index:20;display:none;
+  background:var(--bar);backdrop-filter:blur(18px) saturate(1.4);-webkit-backdrop-filter:blur(18px) saturate(1.4);
+  border-top:1px solid var(--line-strong);box-shadow:0 -8px 24px -12px rgba(0,0,0,.25);
+  padding:11px 16px calc(11px + env(safe-area-inset-bottom,0px));align-items:center;gap:12px}
+.stickybar .sd{font-family:'IBM Plex Mono',monospace;font-size:21px;font-weight:700;padding:7px 13px;border-radius:12px;
+  border:1px solid var(--line-strong);background:var(--surface-2);line-height:1;flex:none}
+.stickybar .sd.gain{color:var(--shard);border-color:var(--shard);background:var(--shard-soft)}
+.stickybar .sd.loss{color:var(--danger);border-color:var(--danger);background:var(--danger-soft)}
+.stickybar .sd.keep{color:var(--keep)}
+.stickybar .st{flex:1;min-width:0}
+.stickybar .st b{display:block;font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stickybar .st span{display:block;font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stickybar .btn{padding:10px 15px;font-size:13px;flex:none}
+
+footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);line-height:1.7}
+footer b{color:var(--ink-2);font-weight:600}
+
+/* 호스트 상세 패널 */
+.hpwrap{position:fixed;inset:0;z-index:60;display:flex;justify-content:flex-end}
+.hpback{position:absolute;inset:0;background:rgba(0,0,0,.4);backdrop-filter:blur(2px)}
+.hpsheet{position:relative;width:min(420px,100%);height:100%;overflow-y:auto;background:var(--ground);
+  border-left:1px solid var(--line-strong);box-shadow:-20px 0 50px -20px rgba(0,0,0,.5);
+  padding:22px 22px calc(28px + env(safe-area-inset-bottom,0px))}
+.hpclose{position:absolute;right:14px;top:14px;width:34px;height:34px;border-radius:9px;border:1px solid var(--line);
+  background:var(--surface);color:var(--ink-2);font-size:14px;cursor:pointer;z-index:2}
+.hpclose:hover{color:var(--ink);border-color:var(--line-strong)}
+@media (max-width:520px){.hpsheet{width:100%;border-left:0;border-top:1px solid var(--line-strong);
+  border-radius:20px 20px 0 0;height:92%;margin-top:auto}.hpwrap{align-items:flex-end}}
+
+.hp-head{display:flex;align-items:center;gap:13px;margin:4px 34px 18px 0}
+.hp-head .av{width:52px;height:52px;font-size:19px}
+.hp-head .avwrap{width:52px;height:52px}
+.hp-name{min-width:0}
+.hp-name b{display:block;font-size:16px;font-weight:700;letter-spacing:-.01em;line-height:1.3;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hp-name span{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)}
+.hp-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px}
+.hp-tags span{font-size:11px;font-weight:600;background:var(--surface);border:1px solid var(--line);
+  border-radius:999px;padding:4px 10px;color:var(--ink-2)}
+.hp-tags .lg{color:var(--brand);border-color:var(--brand-tint);background:var(--brand-tint)}
+.hp-tags .live{color:#fff;background:var(--brand-hot);border-color:var(--brand-hot)}
+
+.hp-kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px}
+.hp-kpi .k{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 10px;text-align:center}
+.hp-kpi .k .kl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px}
+.hp-kpi .k .kv{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:700;letter-spacing:-.02em}
+
+.hp-sec{margin-bottom:20px}
+.hp-sec > h4{font-size:11px;letter-spacing:.06em;color:var(--muted);font-weight:600;text-transform:uppercase;margin:0 0 10px}
+.hp-days{display:flex;align-items:flex-end;gap:5px;height:90px}
+.hp-day{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
+.hp-day .bar{width:100%;max-width:26px;background:var(--brand);border-radius:4px 4px 2px 2px;min-height:3px}
+.hp-day.top .bar{background:var(--shard)}
+.hp-day .dl{font-size:9px;color:var(--muted);font-family:'IBM Plex Mono',monospace}
+.hp-day .dm{font-size:9px;color:var(--keep)}
+.hp-legend{display:flex;gap:12px;font-size:10.5px;color:var(--muted);margin-top:8px}
+.hp-legend b{color:var(--brand);font-weight:600}
+.hp-legend i{color:var(--keep);font-style:normal;font-weight:600}
+
+.hp-sess{display:flex;flex-direction:column;gap:1px}
+.hp-sr{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:baseline;
+  padding:9px 2px;border-bottom:1px solid var(--line);font-size:12.5px}
+.hp-sr:last-child{border-bottom:0}
+.hp-sr .sd{font-family:'IBM Plex Mono',monospace;color:var(--muted);font-size:11.5px}
+.hp-sr .st{color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hp-sr .sv{font-family:'IBM Plex Mono',monospace;font-weight:600;white-space:nowrap}
+.hp-sr.on .st{color:var(--brand);font-weight:600}
+.hp-empty{font-size:12.5px;color:var(--muted);line-height:1.6}
+
+@media (max-width:980px){
+  .grid{grid-template-columns:1fr}
+  .faq{grid-template-columns:1fr 1fr}
+  .cutcard{grid-template-columns:1fr 1fr}
+  .stickybar{display:flex}
+}
+@media (max-width:680px){
+  .wrap{padding:0 15px 56px}
+  .hero{margin:14px 0 26px;padding:22px 20px 24px;border-radius:22px}
+  .hero::after{right:-90px;top:-110px}
+  .lede{font-size:14px}
+  .herochips{margin-top:18px}
+  .faq{grid-template-columns:1fr}
+  .stats{grid-template-columns:1fr;gap:8px}
+  .stat{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .stat .l{margin:0;flex:0 0 72px}
+  .stat .v{font-size:18px}
+  .stat .s{margin:0;flex:1 1 100%}
+  .panel{padding:18px;border-radius:18px}
+  .verdict{gap:13px}
+  .delta{flex:1 1 100%;flex-direction:row;align-items:baseline;justify-content:center;gap:10px;padding:12px 14px}
+  .delta .big{font-size:34px}
+  .delta .cap{margin:0}
+  .nextgoal{flex-direction:column;gap:3px;align-items:flex-start}
+  .nextgoal .ng-v{font-size:22px}
+  .tlrow{grid-template-columns:58px 1fr auto;gap:8px}
+  .bar{width:17px}
+  .cutcard{grid-template-columns:1fr 1fr}
+
+  /* .rrow 리스트: 순위·사진 세로중앙, 이름·다이아 한 줄, 배지(컷/나만) 아래 줄 */
+  .rrow{grid-template-columns:24px 34px minmax(0,1fr) auto 12px;column-gap:10px;row-gap:3px;padding:9px 12px}
+  .rrow .rk{grid-area:1/1/3/2;align-self:center}
+  .rrow .avwrap,.rrow > .av{grid-area:1/2/3/3;align-self:center}
+  .rrow .hn{grid-area:1/3/2/4}
+  .rrow .rdia{grid-area:1/4/2/5;font-size:12.5px}
+  .rrow .rbadge{grid-area:2/3/3/5;justify-self:start}
+  .rrow .rbadge:empty{display:none}
+  .rrow .goarrow{grid-area:1/5/3/6;align-self:center}
+
+  /* #ruleTable(전체 리그 컷) 카드화 — 유지 */
+  #ruleTable{min-width:0;display:block}
+  #ruleTable thead{display:none}
+  #ruleTable tbody{display:block}
+  #ruleTable tbody tr{display:block;background:var(--surface-2);border:1px solid var(--line);border-radius:14px;padding:8px 14px;margin-bottom:9px}
+  #ruleTable tbody tr.rowon{border-color:var(--brand);background:var(--brand-tint)}
+  #ruleTable tbody td{display:flex;justify-content:space-between;gap:12px;padding:7px 0;text-align:right;white-space:normal;border-bottom:1px solid var(--line)}
+  #ruleTable tbody tr td:last-child{border-bottom:0}
+  #ruleTable tbody td::before{content:attr(data-l);color:var(--muted);font-family:Pretendard,sans-serif;font-size:12.5px;font-weight:500;text-align:left;flex:none}
+  #ruleTable tbody td:first-child{font-size:15px;padding-bottom:9px}
+  #ruleTable tbody td:first-child::before{content:none}
+  .cutmeta{display:inline;margin-left:6px}
+  #ruleTable .tablewrap,#ruleTable{border:0;box-shadow:none;background:transparent}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+<header class="hero">
+  <div class="brandline">
+    <div class="mark">OA</div>
+    <div class="brandname">OFF-AIR E&amp;M<span>크리에이터 운영팀</span></div>
+    <button class="themebtn" id="themebtn" type="button">라이트 모드</button>
+  </div>
+
+  <p class="eyebrow">TikTok LIVE · Creator League</p>
+  <h1>리그 <span class="hl">조각</span> 계산기</h1>
+  <p class="lede">내 리그·순위·다이아를 넣으면 <b>오늘 조각 몇 개</b> 받는지, <b>승급까지 며칠</b> 남았는지 바로 나옵니다.</p>
+  <div class="herochips">
+    <span>오늘 조각</span>
+    <span>승급 D-day</span>
+    <span>리그별 컷</span>
+    <span>실시간 랭킹</span>
+  </div>
+</header>
+
+<div class="grid">
+  <form class="panel" id="form" autocomplete="off">
+    <h2>내 상황</h2>
+
+    <div class="field">
+      <label for="league">현재 리그</label>
+      <select id="league"></select>
+    </div>
+
+    <div class="seg" role="group" aria-label="계산 방식">
+      <button type="button" id="mode-rank" aria-pressed="true">순위로 계산</button>
+      <button type="button" id="mode-cut" aria-pressed="false">다이아로 계산</button>
+    </div>
+
+    <div id="rankFields">
+      <div class="field">
+        <label for="rank">지금 리그 순위</label>
+        <div class="stepper">
+          <button type="button" id="rankUp" aria-label="순위 한 계단 위">−</button>
+          <input type="number" id="rank" min="1" step="1" value="18" inputmode="numeric" aria-label="지금 리그 순위">
+          <button type="button" id="rankDown" aria-label="순위 한 계단 아래">+</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="total">리그 참가 인원</label>
+        <input type="number" id="total" min="2" step="1" value="99" inputmode="numeric">
+        <span class="hint" id="totalHint">A·B 리그는 실제 인원이 99명보다 많습니다. LIVE센터 인원을 넣으면 정확해요.</span>
+      </div>
+    </div>
+
+    <div id="cutFields" hidden>
+      <div class="field">
+        <label for="diamond">오늘 예상 다이아</label>
+        <input type="number" id="diamond" min="0" step="100" value="42000" inputmode="numeric">
+        <span class="hint" id="cutHint">결과에 이 리그 컷이 같이 나옵니다.</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>지금 가진 조각</label>
+      <div class="shardpick" id="shardpick" role="group" aria-label="지금 가진 조각">
+        <button type="button" data-s="0" aria-pressed="true">0</button>
+        <button type="button" data-s="1" aria-pressed="false">1</button>
+        <button type="button" data-s="2" aria-pressed="false">2</button>
+        <button type="button" data-s="3" aria-pressed="false">3</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="shield">가진 실드</label>
+      <input type="number" id="shield" min="0" max="10" step="1" value="0" inputmode="numeric">
+      <span class="hint">깎이는 날 자동 방어. 최대 10개.</span>
+    </div>
+
+    <div class="field">
+      <label class="check"><input type="checkbox" id="guardian"> <span>가디언 조각 +1 포함<br><span class="hint">제한시간 안에 목표 코인을 채우면 붙습니다. 주 3회까지.</span></span></label>
+    </div>
+
+    <button class="btn ghost" type="button" id="reset" style="width:100%">입력 초기화</button>
+  </form>
+
+  <div class="panel" id="result">
+    <h2>오늘 결과</h2>
+    <div class="verdict" aria-live="polite">
+      <div class="delta keep" id="delta"><div class="big">0</div><div class="cap">오늘 조각</div></div>
+      <div class="vtext">
+        <h3 id="vhead">입력을 기다리는 중</h3>
+        <p id="vbody">현재 리그와 순위를 넣으면 오늘 조각과 승급 시점을 계산합니다.</p>
+      </div>
+    </div>
+
+    <div class="nextgoal" id="nextgoal" hidden></div>
+
+    <div class="cutline" id="cutline"></div>
+
+    <div class="gauge" id="gauge"></div>
+
+    <div class="stats">
+      <div class="stat" id="s1"><div class="l">승급까지</div><div class="v">—</div><div class="s">조각 4개 도달</div></div>
+      <div class="stat" id="s2"><div class="l">목표</div><div class="v">—</div><div class="s">조각 한 개 더</div></div>
+      <div class="stat" id="s3"><div class="l">현재 위치</div><div class="v">—</div><div class="s">리그 안에서</div></div>
+    </div>
+
+    <p id="vnote" class="resultnote"></p>
+
+    <details class="fold subtle" id="pathFold">
+      <summary><h4>승급 경로 · 리그 사다리</h4></summary>
+      <div class="ladder" id="ladder"></div>
+      <div class="tl" id="tl"></div>
+    </details>
+
+    <div class="resultbar">
+      <button class="btn ghost" type="button" id="shareBtn">결과 요약 복사</button>
+    </div>
+    <div id="sharebox">
+      <p>복사에 실패하면 아래 내용을 길게 눌러 직접 복사하세요.</p>
+      <textarea id="sharetext" readonly rows="8"></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- 컷 데이터 업데이트 (평소엔 접혀 있음) -->
+<section class="block">
+  <details id="cutData" class="fold">
+  <summary><h2>컷 데이터 업데이트</h2> <span class="savenote" id="cutDataSum"></span></summary>
+  <div class="panel">
+  <p class="sub" style="margin:0 0 16px">리그 컷 페이지를 통째로 붙여넣으면 18개 리그가 한 번에 채워집니다. 저장 값은 이 브라우저에만 남습니다.</p>
+    <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+      <div style="font-weight:700;font-size:15px" id="cutTitle">C3 리그</div>
+      <div class="savenote" id="savenote">아직 저장된 컷이 없습니다.</div>
+    </div>
+
+    <div class="seg seg3" role="group" aria-label="입력 방식">
+      <button type="button" id="src-tikdo" aria-pressed="true">붙여넣기</button>
+      <button type="button" id="src-paste" aria-pressed="false">랭킹으로</button>
+      <button type="button" id="src-manual" aria-pressed="false">직접 입력</button>
+    </div>
+
+    <div id="tikdoBox">
+      <div class="field">
+        <label for="tikdotext">리그 컷 페이지 붙여넣기</label>
+        <textarea id="tikdotext" placeholder="tikdo.kr/league/cutoffs 접속(로그인) → 전체 선택(Ctrl+A) → 복사 → 여기 붙여넣기"></textarea>
+        <span class="hint"><span class="num">tikdo.kr/league/cutoffs</span> 페이지 내용을 그대로 붙여넣으세요.</span>
+      </div>
+      <div class="cutbar">
+        <button class="btn" type="button" id="tikdoBtn">불러오기</button>
+        <span class="savenote" id="tikdonote"></span>
+      </div>
+      <div class="preview" id="tikdopreview"></div>
+    </div>
+
+    <div id="pasteBox" hidden>
+      <div class="field">
+        <label for="ranktext">리그 랭킹 붙여넣기</label>
+        <textarea id="ranktext" placeholder="1위 호스트A 2,778,793&#10;2위 호스트B 1,204,110&#10;…"></textarea>
+        <span class="hint">순위 1~99위 전부 붙여넣으세요. 100 이상 숫자만 다이아로 읽습니다.</span>
+      </div>
+      <div class="cutbar">
+        <button class="btn" type="button" id="parseBtn">컷 계산하기</button>
+        <span class="savenote" id="parsenote">읽어들인 다이아: 0개</span>
+      </div>
+      <div class="preview" id="preview"></div>
+    </div>
+
+    <div id="manualBox" hidden>
+      <div class="cutcard">
+        <div class="field"><label for="c3">+3 조각 컷</label><input type="number" id="c3" min="0" step="100" placeholder="A·B 리그만"></div>
+        <div class="field"><label for="c2">+2 조각 컷</label><input type="number" id="c2" min="0" step="100" placeholder="예: 47670"></div>
+        <div class="field"><label for="c1">+1 조각 컷</label><input type="number" id="c1" min="0" step="100" placeholder="예: 29873"></div>
+        <div class="field"><label for="c0">유지컷</label><input type="number" id="c0" min="0" step="100" placeholder="예: 11821"></div>
+      </div>
+      <div class="cutbar">
+        <button class="btn" type="button" id="saveCut">이 리그 컷 저장</button>
+        <button class="btn ghost" type="button" id="clearCut">지우기</button>
+      </div>
+    </div>
+  </div>
+  </details>
+</section>
+
+<!-- 리그별 컷 표 (매니저용 · 평소엔 접힘) -->
+<section class="block">
+  <details class="fold">
+  <summary><h2>전체 리그 컷 한눈에</h2> <span class="savenote">A1~D5 18개 리그 · 매니저용</span></summary>
+  <div class="panel">
+  <p class="sub" style="margin:0 0 14px">참가 인원 <span id="tblN" class="num">99</span>명 기준. 내 리그 컷은 위 &lsquo;오늘 결과&rsquo;에 바로 나옵니다.</p>
+  <div class="tablewrap" style="box-shadow:none">
+    <table id="ruleTable">
+      <thead><tr><th>리그</th><th>+3 조각</th><th>+2 조각</th><th>+1 조각</th><th>유지컷</th><th>1위</th><th>인원</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  </div>
+  </details>
+</section>
+
+<!-- 리그별 랭킹 -->
+<section class="block">
+  <h2>리그별 랭킹</h2>
+  <p class="sub"><b id="rankTitle">C3 리그 랭킹</b> <span id="rankMeta" class="dl"></span><br>리그 버튼으로 18개 리그 순위를 봅니다. 줄을 누르면 그 호스트 상세로 이동합니다.</p>
+  <div class="panel">
+    <div class="leaguetabs" id="rankTabs" role="group" aria-label="리그 선택"></div>
+    <div class="rankctl">
+      <div class="seg" role="group" aria-label="표시 범위" style="margin:0;max-width:280px;flex:1 1 200px">
+        <button type="button" id="rankAll" aria-pressed="true">전체</button>
+        <button type="button" id="rankNear" aria-pressed="false">컷 주변만</button>
+      </div>
+    </div>
+    <p id="rankEmpty" class="sub" style="margin:0" hidden></p>
+    <div id="rankWrap" hidden>
+      <div id="rankScroll"><div id="rankBody" role="list"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 우리 호스트 대시보드 -->
+<section class="block" id="rosterSec">
+  <h2>우리 호스트</h2>
+  <p class="sub"><b id="rosterSum">아직 없습니다.</b> TikTok 백스테이지 <span class="num">크리에이터 데이터</span> 표를 통째로 복사해 붙여넣으면 우리 호스트 목록이 채워집니다. 리그·순위·추세는 위 랭킹 데이터랑 자동으로 맞춰집니다.</p>
+  <div class="panel">
+    <details class="fold" id="rosterInput">
+      <summary><h2>백스테이지 붙여넣기</h2> <span class="savenote" id="rosterInputSum"></span></summary>
+      <div class="panel">
+        <div class="field">
+          <label for="bsCreator">① 크리에이터 데이터</label>
+          <textarea id="bsCreator" placeholder="백스테이지 → 데이터 → 크리에이터 데이터 → 페이지 전체 선택(Ctrl+A) → 복사 → 붙여넣기 (여러 페이지 나눠서 붙여도 됩니다)"></textarea>
+          <span class="hint">핸들·총다이아·라이브시간·유효일수·새팔로워를 읽습니다.</span>
+        </div>
+        <div class="field">
+          <label for="bsOversea">② 해외 분석 <span style="color:var(--muted);font-weight:400">(선택)</span></label>
+          <textarea id="bsOversea" placeholder="백스테이지 → 데이터 → 해외 분석 → 크리에이터별 표 부분 복사 → 붙여넣기" style="min-height:110px"></textarea>
+          <span class="hint">호스트별 해외 다이아 비율·주요 지역을 읽습니다.</span>
+        </div>
+        <div class="cutbar">
+          <button class="btn" type="button" id="rosterBtn">불러오기</button>
+          <button class="btn ghost" type="button" id="rosterClear">전체 지우기</button>
+          <span class="savenote" id="rosterNote"></span>
+        </div>
+      </div>
+    </details>
+
+    <div class="rankctl" id="rosterCtl" hidden>
+      <div class="seg" role="group" aria-label="정렬" style="margin:0;flex:1 1 300px;max-width:420px;grid-template-columns:1fr 1fr 1fr">
+        <button type="button" id="rsEff" aria-pressed="true">효율 낮은 순</button>
+        <button type="button" id="rsDia" aria-pressed="false">다이아순</button>
+        <button type="button" id="rsFlag" aria-pressed="false">문제순</button>
+      </div>
+    </div>
+    <p id="rosterEmpty" class="sub" style="margin:0" hidden></p>
+    <div id="rosterWrap" hidden>
+      <div id="rosterScroll">
+        <table class="rtab">
+          <thead><tr>
+            <th>호스트</th><th>리그·순위</th><th>총다이아</th><th>방송h</th>
+            <th>K/시간</th><th>유효일</th><th>해외%</th><th>7일</th><th>플래그</th>
+          </tr></thead>
+          <tbody id="rosterBody"></tbody>
+        </table>
+      </div>
+      <div class="rlegend" id="rLegend">
+        <span>🔴 <b>해외 고정</b> 해외 다이아 50%↑ — 알고리즘이 해외로 타져 있음</span>
+        <span>🟠 <b>저효율</b> 시간당 3.5K 미만인데 방송 25h↑ — 시간만 태움</span>
+        <span>🟢 <b>기회</b> 시간당 10K↑인데 방송 20h 미만 or 유효일 7일 미만 — 시간 늘리면 큼</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 규칙 (평소엔 접힘) -->
+<section class="block">
+  <details class="fold">
+  <summary><h2>리그 규칙 요약</h2></summary>
+  <div class="panel">
+    <div class="faq">
+      <div class="fcard"><span class="tag">조각</span><h4>4개 모으면 승급, 4개 잃으면 강등</h4><p>랭킹 조각은 하루 최대 +3. 자정 순위로 확정됩니다.</p></div>
+      <div class="fcard"><span class="tag">구간</span><h4>상위 1% +3 · 10% +2 · 20% +1</h4><p>C·D 리그는 +3이 없습니다. 유지컷 밖으로 밀리면 −1.</p></div>
+      <div class="fcard"><span class="tag">유지컷</span><h4>A 50% · B 70% · C·D1 80%</h4><p>이 안에 들면 조각이 안 깎입니다. D2~D5는 차감 자체가 없습니다.</p></div>
+      <div class="fcard"><span class="tag">강등</span><h4>하루 −1이 곧 강등은 아님</h4><p>조각을 4개 잃어야 아래 리그로 내려갑니다.</p></div>
+      <div class="fcard"><span class="tag">실드</span><h4>깎이는 날 자동 방어</h4><p>승급 때 확률로 받는 무료 아이템. 최대 10개까지 쌓입니다.</p></div>
+      <div class="fcard"><span class="tag">가디언</span><h4>조각 +1 별도</h4><p>제한시간 안에 목표 코인을 채우면 붙습니다. 주 3회까지.</p></div>
+    </div>
+  </div>
+  </details>
+</section>
+
+<footer>
+  <b>OFF-AIR E&amp;M</b> 크리에이터 운영팀 제작. 계산 결과는 참고용이며 매일 00:00 KST 순위로 최종 확정됩니다.<br>
+  TikTok · TikTok LIVE는 각 소유자의 상표이며 본 자료는 TikTok Inc.와 무관합니다.
+</footer>
+</div>
+
+<!-- 호스트 상세 패널 -->
+<div class="hpwrap" id="hostPanel" hidden>
+  <div class="hpback" id="hpBack"></div>
+  <div class="hpsheet" role="dialog" aria-modal="true" aria-label="호스트 상세">
+    <button class="hpclose" id="hpClose" type="button" aria-label="닫기">✕</button>
+    <div id="hpBody"></div>
+  </div>
+</div>
+
+<div class="stickybar" id="stickybar">
+  <div class="sd keep" id="sdelta">0</div>
+  <div class="st"><b id="stitle">오늘 조각 계산</b><span id="ssub">리그와 순위를 넣어주세요</span></div>
+  <button class="btn" type="button" id="sgo">결과</button>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  try{
+    if(!document.querySelector('meta[name="viewport"]')){
+      var mv = document.createElement("meta");
+      mv.name = "viewport";
+      mv.content = "width=device-width, initial-scale=1, viewport-fit=cover";
+      document.head.appendChild(mv);
+    }
+  }catch(e){}
+
+  /* file:// 로 열면 data/*.json 도, 호스트 상세도 못 불러온다 → 안내 배너 */
+  var FILE_MODE = location.protocol === "file:";
+  /* localhost = 개발자(collect.js 직접 돌림) · 그 외 = 배포본(자동 수집) */
+  var LOCAL_MODE = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
+  if(FILE_MODE){
+    try{
+      var b = document.createElement("div");
+      b.style.cssText = "position:sticky;top:0;z-index:80;background:#E24A32;color:#fff;font:600 13px/1.5 Pretendard,sans-serif;padding:10px 16px;text-align:center";
+      b.innerHTML = "⚠ 파일을 직접 열었습니다. 데이터·호스트 상세가 안 보입니다. 터미널에서 <b>node server.js</b> 실행 후 <b>localhost:8777</b> 로 여세요.";
+      document.body.insertBefore(b, document.body.firstChild);
+    }catch(e){}
+  }
+
+  var LADDER = ["D5","D4","D3","D2","D1","C5","C4","C3","C2","C1","B5","B4","B3","B2","B1","A3","A2","A1"];
+  var LEAGUES = LADDER.slice().reverse();
+
+  function rulesFor(lg){
+    var t = lg[0];
+    if(t==="A") return {p3:0.01, p2:0.10, p1:0.20, keep:0.50};
+    if(t==="B") return {p3:0.01, p2:0.10, p1:0.20, keep:0.70};
+    if(t==="C") return {p3:null, p2:0.10, p1:0.20, keep:0.80};
+    if(lg==="D1") return {p3:null, p2:0.10, p1:0.20, keep:0.80};
+    return {p3:null, p2:0.10, p1:0.20, keep:null};
+  }
+  /* 리그별 구간 정의 — fragments는 그 구간에서 받는 조각 수 */
+  function specFor(lg){
+    var r = rulesFor(lg), out = [];
+    if(r.p3) out.push({pct:r.p3, fragments:3});
+    out.push({pct:r.p2, fragments:2});
+    out.push({pct:r.p1, fragments:1});
+    if(r.keep) out.push({pct:r.keep, fragments:0});
+    return out;
+  }
+  function cutRank(pct, n){ return Math.max(1, Math.ceil(pct * n)); }
+  function fmt(n){ return Number(n).toLocaleString("ko-KR"); }
+  function esc(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+  /* 프로필 사진이 없을 때 tikple 처럼 이름 첫 글자 + 색 원 */
+  function initialOf(name, handle){
+    var clean = function(x){ return String(x == null ? "" : x).replace(/[^가-힣ぁ-んァ-ヶ一-龥a-zA-Z0-9]/g, ""); };
+    var s = clean(name) || clean(handle);
+    return s ? s.charAt(0).toUpperCase() : "?";
+  }
+
+  var DEFAULTS = {league:"C3", mode:"rank", rank:18, total:99, diamond:42000, shards:0, shield:0, guardian:false};
+  var state = {};
+  for(var k in DEFAULTS) state[k] = DEFAULTS[k];
+
+  var cuts = {};
+  try{ cuts = JSON.parse(localStorage.getItem("offair.league.cuts")||"{}") || {}; }catch(e){ cuts = {}; }
+  try{
+    var saved = JSON.parse(localStorage.getItem("offair.league.state")||"null");
+    if(saved && typeof saved === "object"){
+      for(var j in DEFAULTS) if(saved[j] !== undefined) state[j] = saved[j];
+      if(LADDER.indexOf(state.league) < 0) state.league = DEFAULTS.league;
+    }
+  }catch(e){}
+
+  function persist(){ try{ localStorage.setItem("offair.league.state", JSON.stringify(state)); }catch(e){} }
+  function saveCuts(){ try{ localStorage.setItem("offair.league.cuts", JSON.stringify(cuts)); }catch(e){} }
+
+  /* data/cuts.json 자동 로드 — collect.js 가 주기적으로 만들어 두는 파일.
+     파일이 없거나(file:// 더블클릭 등) 실패하면 조용히 무시하고 기존 동작 유지. */
+  var remoteCutAt = null;
+  function loadRemoteCuts(){
+    if(typeof fetch !== "function") return;
+    fetch("data/cuts.json?t=" + Date.now(), {cache:"no-store"})
+      .then(function(r){ return r && r.ok ? r.json() : null; })
+      .then(function(data){
+        if(!data || typeof data !== "object") return;
+        var changed = false;
+        for(var lg in data){
+          var e = data[lg];
+          if(!e || !e.rows) continue;
+          cuts[lg] = e;
+          changed = true;
+        }
+        if(!changed) return;
+        remoteCutAt = new Date();
+        saveCuts();
+        loadCutCard(); renderTable(); renderRanking(); render(); renderRoster();
+      })
+      .catch(function(){});
+  }
+
+  /* 호스트 상세 (data/hosts.json) — 팔로워·다이아·일별·방송기록 */
+  var hostDetail = {};
+  function loadRemoteHosts(){
+    if(typeof fetch !== "function") return;
+    fetch("data/hosts.json?t=" + Date.now(), {cache:"no-store"})
+      .then(function(r){ return r && r.ok ? r.json() : null; })
+      .then(function(data){
+        if(data && typeof data === "object"){ hostDetail = data; if(openPanelHandle) renderHostPanel(openPanelHandle); renderRoster(); }
+      })
+      .catch(function(){});
+  }
+
+  var $ = function(id){ return document.getElementById(id); };
+
+  var sel = $("league");
+  LEAGUES.forEach(function(lg){
+    var o = document.createElement("option");
+    o.value = lg; o.textContent = lg + " 리그";
+    sel.appendChild(o);
+  });
+
+  /* 저장된 컷에서 조각 수별 점수 꺼내기 */
+  function scoreOf(entry, fragments){
+    if(!entry || !entry.rows) return null;
+    for(var i=0;i<entry.rows.length;i++) if(entry.rows[i].fragments === fragments) return entry.rows[i].score;
+    return null;
+  }
+  function hasCuts(lg){
+    var e = cuts[lg];
+    if(!e || !e.rows) return false;
+    for(var i=0;i<e.rows.length;i++) if(e.rows[i].score != null) return true;
+    return false;
+  }
+
+  /* ── 판정 ── */
+  function judgeByRank(){
+    var r = rulesFor(state.league), n = Math.max(2, state.total), rank = Math.max(1, state.rank);
+    var need = {
+      p3: r.p3 ? cutRank(r.p3,n) : null,
+      p2: cutRank(r.p2,n),
+      p1: cutRank(r.p1,n),
+      keep: r.keep ? cutRank(r.keep,n) : null
+    };
+    var gain, why;
+    if(need.p3 && rank <= need.p3){ gain = 3; why = "상위 1% 안에 있어 랭킹 조각을 최대로 받습니다"; }
+    else if(rank <= need.p2){ gain = 2; why = "상위 10% 안에 있습니다"; }
+    else if(rank <= need.p1){ gain = 1; why = "상위 20% 안에 있습니다"; }
+    else if(!need.keep || rank <= need.keep){ gain = 0; why = need.keep ? "유지 구간이라 조각이 쌓이지도, 깎이지도 않습니다" : "D2~D5는 조각이 깎이지 않는 구간입니다"; }
+    else { gain = -1; why = "유지컷 밖이라 조각이 깎입니다"; }
+    return {gain:gain, why:why, need:need, pct: rank/n};
+  }
+
+  /* 유지컷이 틱플의 "상위 99명 기준 추정치" 인지 */
+  function keepEstimated(lg){
+    var e = cuts[lg];
+    if(!e || !e.rows) return false;
+    for(var i=0;i<e.rows.length;i++) if(e.rows[i].fragments === 0 && e.rows[i].estimated) return true;
+    return false;
+  }
+  function isAuto(e){ return e && typeof e.source === "string" && /^(tikple|tikdo)/.test(e.source); }
+  function srcName(e){ return ""; }   /* 출처명은 표시하지 않음 */
+
+  function judgeByCut(){
+    var e = cuts[state.league], d = state.diamond, r = rulesFor(state.league);
+    if(!hasCuts(state.league)) return {missing:true};
+    var c3 = scoreOf(e,3), c2 = scoreOf(e,2), c1 = scoreOf(e,1), c0 = scoreOf(e,0);
+    var estKeep = keepEstimated(state.league);
+    var gain, why;
+    if(c3!=null && r.p3 && d >= c3){ gain = 3; why = "+3 컷 " + fmt(c3) + " 이상입니다"; }
+    else if(c2!=null && d >= c2){ gain = 2; why = "+2 컷 " + fmt(c2) + " 이상입니다"; }
+    else if(c1!=null && d >= c1){ gain = 1; why = "+1 컷 " + fmt(c1) + " 이상입니다"; }
+    else if(c0==null || d >= c0 || !r.keep){
+      gain = 0;
+      why = !r.keep ? "D2~D5는 조각이 깎이지 않는 구간입니다"
+          : "유지컷 " + fmt(c0) + "" + (estKeep ? "(추정)" : "") + "은 넘겼지만 조각 구간에는 못 미쳤습니다";
+    }
+    else { gain = -1; why = "유지컷 " + fmt(c0) + (estKeep ? "(추정)" : "") + "에 못 미쳐 조각이 깎입니다"; }
+    var nextCut = null, nextLabel = "";
+    if(gain === -1 && c0!=null){ nextCut = c0 - d; nextLabel = "유지"; }
+    else if(gain === 0 && c1!=null){ nextCut = c1 - d; nextLabel = "+1 조각"; }
+    else if(gain === 1 && c2!=null){ nextCut = c2 - d; nextLabel = "+2 조각"; }
+    else if(gain === 2 && c3!=null && r.p3){ nextCut = c3 - d; nextLabel = "+3 조각"; }
+    return {gain:gain, why:why, nextCut:nextCut, nextLabel:nextLabel, approx:isAuto(e), estKeep:estKeep};
+  }
+
+  function dayLabel(d){
+    var t = new Date(); t.setHours(0,0,0,0); t.setDate(t.getDate() + d);
+    return (t.getMonth()+1) + "월 " + t.getDate() + "일";
+  }
+
+  var lastSummary = "";
+
+  function render(){
+    var lg = state.league;
+    var idx = LADDER.indexOf(lg);
+    var up = idx < LADDER.length-1 ? LADDER[idx+1] : null;
+    var down = idx > 0 ? LADDER[idx-1] : null;
+
+    var res = state.mode === "rank" ? judgeByRank() : judgeByCut();
+    var deltaEl = $("delta"), head = $("vhead"), body = $("vbody"), note = $("vnote");
+
+    if(res.missing){
+      deltaEl.className = "delta keep";
+      deltaEl.innerHTML = '<div class="big">?</div><div class="cap">오늘 조각</div>';
+      head.textContent = "컷 데이터가 없습니다";
+      body.textContent = "아래 ‘컷 데이터 업데이트’를 열어 붙여넣거나, ‘순위로 계산’을 쓰세요.";
+      note.textContent = "";
+      $("nextgoal").hidden = true;
+      $("s2").hidden = true; $("s3").hidden = true;
+      renderGauge(state.shards, 0);
+      renderCutline(lg, res);
+      setStat("s1","—","조각 4개 도달","","승급까지");
+      $("tl").innerHTML = "";
+      renderLadder(lg, up, down, 0);
+      updateSticky("?", "keep", "컷 데이터가 없습니다", lg + " 리그 랭킹을 넣어주세요");
+      lastSummary = "";
+      return;
+    }
+
+    var gain = res.gain + (state.guardian ? 1 : 0);
+    var cls = gain > 0 ? "gain" : (gain < 0 ? "loss" : "keep");
+    deltaEl.className = "delta " + cls;
+    deltaEl.innerHTML = '<div class="big">' + (gain>0?"+":"") + gain + '</div><div class="cap">오늘 조각</div>';
+
+    if(gain > 0 && gain >= 4 - state.shards){
+      head.textContent = up ? "오늘 자정에 " + up + " 리그로 승급합니다" : "오늘 자정에 조각이 가득 찹니다";
+    } else if(gain > 0){
+      head.textContent = "오늘 자정에 조각 " + state.shards + "개 → " + (state.shards + gain) + "개";
+    } else if(gain === 0){
+      head.textContent = "오늘은 조각 변동이 없습니다";
+    } else {
+      head.textContent = state.shield > 0 ? "실드가 오늘 차감을 막아줍니다" : "조각이 1개 깎입니다";
+    }
+
+    var whyText = res.why;
+    if(state.guardian) whyText += ". 가디언 조각 +1을 더했습니다";
+    body.textContent = whyText + ".";
+
+    var s1v, s1s, s1cls = "", s1label = "승급까지", days = 0;
+    if(gain > 0){
+      days = Math.ceil((4 - state.shards) / gain);
+      s1v = days + "일";
+      s1s = dayLabel(days) + " 자정" + (up ? " · " + up + " 리그" : "");
+      s1cls = "good";
+    } else if(gain === 0){
+      s1v = "정체"; s1s = "이 페이스로는 승급하지 못합니다";
+    } else {
+      days = state.shield + state.shards + 4;
+      s1v = days + "일";
+      s1s = dayLabel(days) + " · " + (down ? down : "하위") + " 리그로 강등";
+      s1cls = "warn"; s1label = "강등까지";
+    }
+    setStat("s1", s1v, s1s, s1cls, s1label);
+
+    var goalText = "";
+    var ng = {k:"", v:"", s:"", done:false, show:true};
+    if(state.mode === "rank"){
+      var n = Math.max(2, state.total), rank = Math.max(1, state.rank), need = res.need;
+      var target = null, tlabel = "";
+      if(res.gain === -1 && need.keep){ target = need.keep; tlabel = "유지 구간 진입"; }
+      else if(res.gain === 0 && need.p1){ target = need.p1; tlabel = "+1 조각"; }
+      else if(res.gain === 1){ target = need.p2; tlabel = "+2 조각"; }
+      else if(res.gain === 2 && need.p3){ target = need.p3; tlabel = "+3 조각"; }
+      if(target){
+        var steps = Math.max(0, rank - target);
+        var e = cuts[lg], tScore = null;
+        if(e && e.rows){
+          for(var i=0;i<e.rows.length;i++) if(e.rows[i].rank === target) tScore = e.rows[i].score;
+        }
+        setStat("s2", target + "위", tlabel + "까지 " + steps + "계단" + (tScore!=null ? " · " + fmt(tScore) + " 다이아" : ""), "", "목표 순위");
+        goalText = tlabel + "까지 " + target + "위 안 (" + steps + "계단 위)" + (tScore!=null ? " · 약 " + fmt(tScore) + " 다이아" : "");
+        ng = {k: tlabel + "까지", v: steps === 0 ? "이미 안" : steps + "계단 위로", s: target + "위 안에 들면 됩니다" + (tScore!=null ? " (약 " + fmt(tScore) + " 다이아)" : ""), done: steps === 0};
+      } else {
+        setStat("s2", "최대", res.gain >= 2 ? "이 리그에서 받을 수 있는 최대치" : "이 리그는 차감이 없습니다", "good", "목표 순위");
+        goalText = res.gain >= 2 ? "이 리그 최대 구간" : "차감 없는 구간";
+        ng = {k: "", v: res.gain >= 2 ? "이 리그 최대 구간 달성" : "차감 없는 구간", s: "", done: true};
+      }
+      setStat("s3", Math.round(res.pct*1000)/10 + "%", rank + "위 / " + n + "명 중", "", "현재 위치");
+    } else {
+      if(res.nextCut != null && res.nextCut > 0){
+        setStat("s2", fmt(res.nextCut), res.nextLabel + "까지 남은 다이아", "", "목표 다이아");
+        goalText = res.nextLabel + "까지 " + fmt(res.nextCut) + " 더";
+        ng = {k: res.nextLabel + "까지", v: "+" + fmt(res.nextCut), s: "지금 " + fmt(state.diamond) + " → " + fmt(state.diamond + res.nextCut) + " 다이아", done: false};
+      } else {
+        setStat("s2", "달성", res.gain >= 2 ? "이 리그 최대 구간" : "다음 컷이 저장되어 있지 않습니다", "good", "목표 다이아");
+        goalText = "다음 컷 없음";
+        ng = {k: "", v: res.gain >= 2 ? "이 리그 최대 구간 달성" : "다음 컷이 없습니다", s: "", done: res.gain >= 2};
+      }
+      setStat("s3", fmt(state.diamond), "오늘 예상 다이아", "", "입력값");
+    }
+    (function(){
+      var el = $("nextgoal");
+      if(!ng.v){ el.hidden = true; return; }
+      el.hidden = false;
+      el.className = "nextgoal" + (ng.done ? " done" : "");
+      el.innerHTML = (ng.k ? '<span class="ng-k">' + ng.k + '</span>' : '') +
+        '<span class="ng-v">' + ng.v + '</span>' +
+        (ng.s ? '<span class="ng-s">' + ng.s + '</span>' : '');
+    })();
+    /* 다이아 모드에선 목표·입력값 stat 이 위 박스와 겹치므로 숨김 */
+    $("s2").hidden = state.mode === "cut";
+    $("s3").hidden = state.mode === "cut";
+
+    note.textContent = gain < 0
+      ? "실드 " + state.shield + "개를 먼저 쓰고, 조각을 모두 잃은 뒤 4개를 더 잃으면 강등입니다."
+      : "자정 00:00 순위로 확정됩니다. 22~24시에 순위가 자주 바뀝니다.";
+
+    renderGauge(state.shards, gain);
+    renderCutline(lg, res);
+    renderLadder(lg, up, down, gain);
+    renderTimeline(gain, up, down);
+
+    var sTitle = gain > 0
+      ? (gain >= 4 - state.shards ? (up ? up + " 승급" : "조각 가득") : "조각 " + state.shards + " → " + (state.shards+gain))
+      : (gain === 0 ? "조각 변동 없음" : (state.shield > 0 ? "실드로 방어" : "조각 −1"));
+    var sSub = gain > 0 ? "승급까지 " + days + "일 · " + goalText
+             : (gain === 0 ? goalText : "이대로면 " + days + "일 뒤 강등");
+    updateSticky((gain>0?"+":"") + gain, cls, sTitle, sSub);
+
+    lastSummary = buildSummary(gain, up, down, days, goalText);
+  }
+
+  function buildSummary(gain, up, down, days, goalText){
+    var L = [];
+    L.push("[OFF-AIR 리그 승급 시뮬레이터]");
+    L.push(state.league + " 리그 · " + (state.mode === "rank"
+      ? state.rank + "위 / " + state.total + "명"
+      : "오늘 예상 다이아 " + fmt(state.diamond)));
+    L.push("오늘 조각 " + (gain>0?"+":"") + gain + " · 보유 조각 " + state.shards + "개" + (state.shield ? " · 실드 " + state.shield + "개" : ""));
+    if(gain > 0) L.push("승급까지 " + days + "일 (" + dayLabel(days) + " 자정" + (up ? " · " + up + " 리그" : "") + ")");
+    else if(gain === 0) L.push("이 페이스로는 승급하지 못합니다");
+    else L.push("이대로면 " + days + "일 뒤 " + (down ? down : "하위") + " 리그로 강등");
+    if(goalText) L.push("오늘 목표: " + goalText);
+    L.push("※ 매일 00:00 KST 순위로 확정됩니다.");
+    return L.join("\n");
+  }
+
+  function setStat(id, v, s, cls, label){
+    var el = $(id);
+    el.className = "stat" + (cls ? " " + cls : "");
+    if(label) el.children[0].textContent = label;
+    el.children[1].textContent = v;
+    el.children[2].textContent = s;
+  }
+  function updateSticky(d, cls, title, sub){
+    $("sdelta").textContent = d;
+    $("sdelta").className = "sd " + cls;
+    $("stitle").textContent = title;
+    $("ssub").textContent = sub;
+  }
+  function renderGauge(shards, gain){
+    var g = $("gauge"); g.innerHTML = "";
+    for(var i=0;i<4;i++){
+      var d = document.createElement("div");
+      var on = i < shards;
+      var willGet = !on && gain > 0 && i < shards + gain;
+      d.className = "cell" + (on ? " on" : (willGet ? " next" : ""));
+      d.textContent = on ? "●" : (willGet ? "오늘" : "○");
+      g.appendChild(d);
+    }
+  }
+  /* 결과 패널 안에 이 리그의 컷 4칸을 바로 보여준다 */
+  function renderCutline(lg, res){
+    var el = $("cutline");
+    var e = cuts[lg], r = rulesFor(lg);
+    if(!e || !hasCuts(lg)){
+      el.innerHTML = '<p class="none">' + lg + ' 리그 컷이 없습니다. 아래 <b>컷 데이터 업데이트</b>에서 붙여넣으면 채워집니다.</p>';
+      return;
+    }
+    var estKeep = keepEstimated(lg);
+    var defs = [
+      {f:3, k:"+3 조각", on:r.p3},
+      {f:2, k:"+2 조각", on:true},
+      {f:1, k:"+1 조각", on:true},
+      {f:0, k:(estKeep ? "유지(추정)" : "유지컷"), on:!!r.keep}
+    ];
+    /* 지금 내 위치가 어느 칸인지 (다이아 모드일 때) */
+    var d = state.diamond, hitF = null;
+    if(state.mode === "cut"){
+      var c3=scoreOf(e,3),c2=scoreOf(e,2),c1=scoreOf(e,1),c0=scoreOf(e,0);
+      if(c3!=null && r.p3 && d>=c3) hitF=3;
+      else if(c2!=null && d>=c2) hitF=2;
+      else if(c1!=null && d>=c1) hitF=1;
+      else if(!r.keep || c0==null || d>=c0) hitF=0;
+      else hitF=-1;
+    }
+    var cells = defs.map(function(x){
+      if(!x.on) return '<div class="cg"><div class="cgk">' + x.k + '</div><div class="cgv">–</div><div class="cgd">해당 없음</div></div>';
+      var sc = scoreOf(e, x.f);
+      var prev = e.prev ? e.prev["f"+x.f] : null;
+      var dd = "";
+      if(sc!=null && prev!=null && prev>0){
+        var diff = sc - prev, pc = Math.round(Math.abs(diff)/prev*100);
+        if(diff!==0 && pc>=3) dd = (diff>0?"▲":"▼") + " " + pc + "%";
+      }
+      return '<div class="cg' + (hitF===x.f ? " hit" : "") + '">' +
+        '<div class="cgk">' + x.k + '</div>' +
+        '<div class="cgv">' + (sc!=null ? fmt(sc) : "?") + '</div>' +
+        '<div class="cgd">' + (dd || (sc!=null ? "상위 " + Math.round(x.f===3?r.p3*100:x.f===2?r.p2*100:x.f===1?r.p1*100:r.keep*100) + "%" : "미저장")) + '</div>' +
+      '</div>';
+    }).join("");
+    var tip = state.mode === "cut"
+      ? (res && res.nextCut != null && res.nextCut > 0 ? res.nextLabel + "까지 " + fmt(res.nextCut) + " 더" : "")
+      : "‘다이아로 계산’으로 바꾸면 내 위치가 표시됩니다";
+    el.innerHTML = '<div class="ct"><span>' + lg + ' 리그 컷</span>' + (e.savedAt ? '<span class="src">' + e.savedAt + '</span>' : '') + '</div>' +
+      '<div class="cutgrid">' + cells + '</div>' +
+      (tip ? '<p class="none" style="margin-top:9px">' + tip + '</p>' : '');
+  }
+  function renderLadder(lg, up, down, gain){
+    $("ladder").innerHTML =
+      '<span>강등</span><span class="pill">' + (down || "—") + '</span><span>←</span>' +
+      '<span class="pill now">' + lg + '</span>' +
+      '<span>→</span><span class="pill ' + (gain>0?"up":"") + '">' + (up || "최상위") + '</span><span>승급</span>';
+  }
+  function renderTimeline(gain, up, down){
+    var el = $("tl");
+    if(gain === 0){
+      el.innerHTML = '<h4>앞으로 7일</h4><p class="empty">이 페이스가 유지되면 조각은 그대로입니다. 하루라도 상위 20% 안에 들어야 카운트가 시작됩니다.</p>';
+      return;
+    }
+    var rows = "", s = state.shards, shield = state.shield, done = false;
+    for(var d=1; d<=7 && !done; d++){
+      var label = "", rowcls = "", shieldDay = false;
+      if(gain > 0){
+        s += gain;
+        if(s >= 4){ label = (up ? up + " 리그 승급" : "조각 가득"); rowcls = "hit"; s = 4; done = true; }
+        else label = "조각 " + s + "개";
+      } else {
+        if(shield > 0){ shield--; label = "실드가 방어"; shieldDay = true; }
+        else {
+          s -= 1;
+          if(s <= -4){ label = (down ? down + " 리그 강등" : "강등"); rowcls = "bad"; done = true; }
+          else label = s >= 0 ? "조각 " + s + "개" : "차감 " + (-s) + "개";
+        }
+      }
+      var bars = "";
+      if(shieldDay) bars = '<span class="bar shield"></span><span class="bar"></span><span class="bar"></span><span class="bar"></span>';
+      else for(var b=0;b<4;b++) bars += '<span class="bar' + (b < Math.max(0, s) ? " on" : "") + '"></span>';
+      rows += '<div class="tlrow ' + rowcls + '"><div class="d">' + dayLabel(d) + '</div><div class="bars">' + bars + '</div><div class="r">' + label + '</div></div>';
+    }
+    el.innerHTML = '<h4>' + (gain > 0 ? "승급 경로" : "강등 카운트") + '</h4>' + rows;
+  }
+
+  /* ── 리그별 컷 표 ── */
+  function deltaChip(now, prev){
+    if(now == null || prev == null || prev === 0) return "";
+    var d = now - prev;
+    if(d === 0) return ' <span class="dl">±0</span>';
+    var pct = Math.round(Math.abs(d) / prev * 100);
+    return ' <span class="' + (d>0?"up":"down") + '">' + (d>0?"▲":"▼") + " " + pct + '%</span>';
+  }
+  function renderTable(){
+    var nDefault = Math.max(2, state.total);
+    $("tblN").textContent = nDefault;
+    var tb = document.querySelector("#ruleTable tbody");
+    tb.innerHTML = "";
+    LEAGUES.forEach(function(lg){
+      var e = cuts[lg], r = rulesFor(lg);
+      var n = (e && e.count) ? e.count : nDefault;
+      var tr = document.createElement("tr");
+      if(lg === state.league) tr.className = "rowon";
+
+      function cell(fragments, pct, label){
+        if(!pct) return '<td data-l="' + label + '"><span class="no">해당 없음</span></td>';
+        var row = e && e.rows ? e.rows.filter(function(x){ return x.fragments === fragments; })[0] : null;
+        var hasRank = row && row.rank;
+        var score = scoreOf(e, fragments);
+        var prev = e && e.prev ? e.prev["f"+fragments] : null;
+        var rowEst = row && row.estimated;
+        var meta = (hasRank ? row.rank + '위 · ' : '') + '상위 ' + Math.round(pct*100) + '%' + (rowEst ? ' · 추정' : '');
+        if(score == null){
+          return '<td data-l="' + label + '"><span class="no">' + (hasRank ? row.rank + '위 · ' : '') + '상위 ' + Math.round(pct*100) + '%</span></td>';
+        }
+        return '<td data-l="' + label + '"><span class="cutv">' + fmt(score) + deltaChip(score, prev) +
+               '</span><span class="cutmeta">' + meta + '</span></td>';
+      }
+
+      tr.innerHTML =
+        '<td data-l="리그">' + lg + " 리그</td>" +
+        cell(3, r.p3, "+3 조각") +
+        cell(2, r.p2, "+2 조각") +
+        cell(1, r.p1, "+1 조각") +
+        (r.keep ? cell(0, r.keep, "유지컷") : '<td data-l="유지컷"><span class="no">차감 없음</span></td>') +
+        '<td data-l="1위">' + (e && e.top != null ? fmt(e.top) : '<span class="no">—</span>') + "</td>" +
+        '<td data-l="인원">' + n + "명</td>";
+      tb.appendChild(tr);
+    });
+  }
+
+  /* ── 리그별 랭킹 목록 ── */
+  var rankNear = false;
+  var rankLg = null;   /* null = 현재 선택 리그를 따라감 */
+
+  function buildRankTabs(){
+    var box = $("rankTabs");
+    box.innerHTML = "";
+    var prevTier = null;
+    LEAGUES.forEach(function(lg){
+      if(prevTier && lg[0] !== prevTier){
+        var br = document.createElement("span"); br.className = "grp"; box.appendChild(br);
+      }
+      prevTier = lg[0];
+      var b = document.createElement("button");
+      b.type = "button"; b.textContent = lg; b.dataset.lg = lg;
+      b.addEventListener("click", function(){
+        rankLg = lg;
+        renderRanking();
+        $("rankWrap").scrollIntoView({behavior:"smooth", block:"nearest"});
+      });
+      box.appendChild(b);
+    });
+  }
+
+  function renderRanking(){
+    var lg = rankLg || state.league, e = cuts[lg];
+    $("rankTitle").textContent = lg + " 리그 랭킹";
+    Array.prototype.forEach.call($("rankTabs").children, function(b){
+      if(b.dataset) b.setAttribute("aria-pressed", b.dataset.lg === lg ? "true" : "false");
+    });
+    var empty = $("rankEmpty"), wrap = $("rankWrap"), meta = $("rankMeta");
+
+    if(!e || !e.ranking || !e.ranking.length){
+      meta.textContent = "";
+      wrap.hidden = true;
+      empty.hidden = false;
+      empty.textContent = LOCAL_MODE
+        ? ((e && e.rows)
+            ? lg + " 리그는 컷 숫자만 있고 랭킹 목록은 없습니다. collect.js 를 다시 실행하면 채워집니다."
+            : lg + " 리그 랭킹 데이터가 없습니다. collect.js 수집이 필요합니다.")
+        : lg + " 리그 랭킹을 아직 불러오지 못했습니다. 잠시 후 새로고침 해보세요.";
+      return;
+    }
+
+    empty.hidden = true;
+    wrap.hidden = false;
+    var count = e.count || e.ranking.length;
+    var estKeep = keepEstimated(lg);
+    meta.textContent = "· " + (srcName(e) ? srcName(e) + " · " : "") + (e.savedAt || "") + " · " + count + "명"
+      + (estKeep ? " · 유지컷은 상위 99명 기준 추정" : "");
+
+    /* 컷 마킹: rows 에 rank 가 있으면 그대로, 없으면(틱두처럼 리그 전체 기준)
+       컷 점수보다 다이아가 낮아지는 첫 순위에 표시 — 이 99명 안에 들 때만 */
+    var cutAt = {};
+    if(e.rows && e.rows.some(function(x){ return x.rank; })){
+      e.rows.forEach(function(row){ if(row.rank) cutAt[row.rank] = row.fragments; });
+    } else if(e.rows && e.rows.length){
+      var sortedR = e.ranking.slice().sort(function(a,b){ return b.dToday - a.dToday; });
+      e.rows.forEach(function(row){
+        if(row.score == null) return;
+        for(var i=0;i<sortedR.length;i++){
+          if(sortedR[i].dToday <= row.score){ cutAt[sortedR[i].rank] = row.fragments; break; }
+        }
+      });
+    } else {
+      specFor(lg).forEach(function(sp){ cutAt[cutRank(sp.pct, count)] = sp.fragments; });
+    }
+    var mine = (state.mode === "rank" && lg === state.league) ? Math.max(1, Math.round(state.rank)) : null;
+
+    var html = "";
+    e.ranking.forEach(function(r){
+      var frag = cutAt[r.rank];
+      var isCut = frag !== undefined;
+      var isMine = mine === r.rank;
+      if(rankNear && !isCut && !isMine){
+        var keep = false;
+        for(var kk in cutAt) if(Math.abs(r.rank - Number(kk)) <= 2) keep = true;
+        if(mine && Math.abs(r.rank - mine) <= 2) keep = true;
+        if(!keep) return;
+      }
+      var badge = isCut
+        ? '<span class="fragb f' + frag + '">' + (frag ? "+" + frag + " 조각 컷" : (estKeep ? "유지컷(추정)" : "유지컷")) + '</span>'
+        : "";
+      var col = /^#[0-9a-fA-F]{3,8}$/.test(r.color || "") ? esc(r.color) : "var(--surface-2)";
+      var ph = '<span class="av ph" style="background:' + col + '">' + esc(initialOf(r.name, r.handle)) + '</span>';
+      var av = r.avatar
+        ? '<span class="avwrap">' + ph + '<img class="av" src="' + esc(r.avatar) + '" alt="" loading="lazy" onerror="this.remove()"></span>'
+        : ph;
+      var name = r.name ? '<i>' + esc(r.name) + '</i>' : '';
+      var h = esc(r.handle);
+      html += '<div class="rrow hostrow ' + (isCut ? "cutrow " : "") + (isMine ? "mine" : "") + '" role="listitem" data-handle="' + h + '" tabindex="0" title="@' + h + ' 상세 보기">' +
+        '<span class="rk">' + r.rank + (isMine ? '<em>나</em>' : '') + '</span>' +
+        av +
+        '<span class="hn"><b>@' + h + (r.live ? ' <span class="livedot" title="LIVE"></span>' : '') + '</b>' + name + '</span>' +
+        '<span class="rdia">' + fmt(r.dToday) + '</span>' +
+        '<span class="rbadge">' + badge + '</span>' +
+        '<span class="goarrow">›</span>' +
+      '</div>';
+    });
+    $("rankBody").innerHTML = html ||
+      '<p class="none" style="padding:14px">표시할 줄이 없습니다.</p>';
+  }
+
+  /* ── 호스트 상세 패널 ── */
+  var openPanelHandle = null;
+  function fmtK(n){
+    n = Number(n) || 0;
+    if(n >= 1e6) return (n/1e6).toFixed(n>=1e7?0:1).replace(/\.0$/,"") + "M";
+    if(n >= 1e3) return Math.round(n/1e3) + "K";
+    return String(n);
+  }
+  function rankEntryOf(handle){
+    for(var lg in cuts){
+      var rk = cuts[lg] && cuts[lg].ranking;
+      if(!rk) continue;
+      for(var i=0;i<rk.length;i++) if(rk[i].handle === handle) return {e:rk[i], lg:lg};
+    }
+    return null;
+  }
+  function openHost(handle){
+    if(!handle) return;
+    openPanelHandle = handle;
+    var w = $("hostPanel");
+    w.hidden = false;
+    document.body.style.overflow = "hidden";
+    try{ $("hpClose").focus(); }catch(e){}
+    try{ renderHostPanel(handle); }
+    catch(e){ $("hpBody").innerHTML = '<p class="hp-empty">패널을 여는 중 오류가 났습니다.' + (FILE_MODE ? ' 서버(localhost:8777)로 열었는지 확인하세요.' : ' 새로고침 후 다시 시도해 주세요.') + '<br><small>' + (e && e.message ? esc(String(e.message)) : "") + '</small></p>'; }
+    var re = rankEntryOf(handle);
+    if(!hostDetail[handle] && re && re.e.uid && !FILE_MODE) fetchHostOnDemand(re.e.uid, handle);
+  }
+  function closeHostPanel(){
+    $("hostPanel").hidden = true;
+    document.body.style.overflow = "";
+    openPanelHandle = null;
+  }
+  $("hpClose").addEventListener("click", closeHostPanel);
+  $("hpBack").addEventListener("click", closeHostPanel);
+  document.addEventListener("keydown", function(ev){ if(ev.key === "Escape" && !$("hostPanel").hidden) closeHostPanel(); });
+
+  function fetchHostOnDemand(uid, handle){
+    if(typeof fetch !== "function") return;
+    fetch("https://www.tikple.com/host/u/" + encodeURIComponent(uid), {cache:"no-store"})
+      .then(function(r){ return r && r.ok ? r.text() : null; })
+      .then(function(raw){
+        if(!raw) return;
+        var d = parseHostHtml(raw);
+        if(d){ d.at = Date.now(); hostDetail[handle] = d; if(openPanelHandle === handle) renderHostPanel(handle); }
+      })
+      .catch(function(){});
+  }
+  /* 틱플 호스트 페이지 HTML → 상세 객체 (collect.js parseHostDetail 과 동일 스키마) */
+  function flightJoin(raw){
+    var out = [], re = /__next_f\.push\(\[1,/g, m;
+    while((m = re.exec(raw)) !== null){
+      var k = m.index + m[0].length; while(raw[k] === " ") k++;
+      if(raw[k] !== '"') continue;
+      var esc = false, j = k + 1;
+      for(; j < raw.length; j++){ var c = raw[j]; if(esc){esc=false;continue;} if(c==="\\"){esc=true;continue;} if(c==='"')break; }
+      try{ out.push(JSON.parse(raw.slice(k, j + 1))); }catch(e){}
+    }
+    return out.join("");
+  }
+  function balSlice(s, i){
+    var open = s[i], close = open === "{" ? "}" : "]", d = 0, ins = false, es = false;
+    for(var j = i; j < s.length; j++){
+      var c = s[j];
+      if(ins){ if(es)es=false; else if(c==="\\")es=true; else if(c==='"')ins=false; continue; }
+      if(c==='"')ins=true; else if(c===open)d++; else if(c===close && --d===0) return s.slice(i, j+1);
+    }
+    return null;
+  }
+  function pickObj(pay, key){
+    var tag = '"' + key + '":', i = pay.indexOf(tag);
+    if(i < 0) return null;
+    var k = i + tag.length; while(pay[k] === " ") k++;
+    if(pay[k] !== "{" && pay[k] !== "[") return null;
+    try{ return JSON.parse(balSlice(pay, k)); }catch(e){ return null; }
+  }
+  function parseHostHtml(raw){
+    var pay = flightJoin(raw) || raw;
+    var h = pickObj(pay, "host");
+    if(!h) return null;
+    var days = (pickObj(pay, "days") || []).filter(function(x){ return x && x.hasData; }).slice(-14)
+      .map(function(x){ return {d:x.dayKey, dia:x.diamonds||0, min:x.liveMinutes||0, rank:x.bestRank||null}; });
+    var sessions = (pickObj(pay, "sessions") || []).slice(0,12)
+      .map(function(x){ return {s:x.startedAt, e:x.endedAt, min:x.durationMin||0, dia:x.diamonds||0, rank:x.bestRank||null, on:!!x.ongoing}; });
+    return {
+      name:h.name||null, handle:String(h.handle||"").replace(/^@/,""), league:h.league||null,
+      followers:h.followers||0, following:(h.stats&&h.stats.following)||0,
+      hearts:(h.stats&&h.stats.hearts)||0, videos:(h.stats&&h.stats.videos)||0,
+      dToday:h.dToday||0, d7:h.d7||0, d30:h.d30||0, week:Array.isArray(h.week)?h.week:null,
+      live:!!h.live, days:days, sessions:sessions
+    };
+  }
+
+  function renderHostPanel(handle){
+    var d = hostDetail[handle];
+    var re = rankEntryOf(handle);
+    var basic = re ? re.e : null;
+    var lg = (d && d.league) || (re && re.lg) || "";
+    var name = (d && d.name) || (basic && basic.name) || "";
+    var live = d ? d.live : (basic && basic.live);
+    var av;
+    if(basic && basic.avatar){
+      av = '<span class="avwrap"><span class="av ph" style="background:' + (/^#[0-9a-fA-F]{3,8}$/.test(basic.color||"")?esc(basic.color):"var(--surface-2)") + '">' + esc(initialOf(name, handle)) + '</span><img class="av" src="' + esc(basic.avatar) + '" alt="" onerror="this.remove()"></span>';
+    } else {
+      av = '<span class="av ph" style="background:' + (basic&&/^#[0-9a-fA-F]{3,8}$/.test(basic.color||"")?esc(basic.color):"var(--surface-2)") + '">' + esc(initialOf(name, handle)) + '</span>';
+    }
+    var html = '<div class="hp-head">' + av +
+      '<div class="hp-name"><b>' + (name ? esc(name) : "@" + esc(handle)) + '</b><span>@' + esc(handle) + '</span></div></div>' +
+      '<div class="hp-tags">' +
+        (lg ? '<span class="lg">' + esc(lg) + ' 리그</span>' : '') +
+        (live ? '<span class="live">LIVE</span>' : '') +
+        (basic && basic.rank ? '<span>현재 ' + basic.rank + '위</span>' : '') +
+        (d ? '<span>팔로워 ' + fmtK(d.followers) + '</span>' + (d.videos ? '<span>영상 ' + fmtK(d.videos) + '</span>' : '') : '') +
+      '</div>';
+
+    if(!d){
+      html += '<div class="hp-kpi"><div class="k"><div class="kl">오늘 다이아</div><div class="kv">' + (basic ? fmt(basic.dToday) : "—") + '</div></div></div>' +
+        '<p class="hp-empty">' + (FILE_MODE
+          ? '파일을 직접 열어서 상세 데이터를 못 불러옵니다. <b>node server.js</b> 실행 후 <b>localhost:8777</b> 로 여세요.'
+          : LOCAL_MODE
+          ? '상세 데이터를 아직 수집하지 못했습니다. <code>node collect.js --watch 20</code> 을 돌리면 팔로워·7일·30일 다이아·방송 기록이 여기 채워집니다.'
+          : '이 호스트 상세는 아직 수집 전입니다. 상위권부터 채워지는 중이라 조금 기다리면 나옵니다.') + '</p>';
+      $("hpBody").innerHTML = html;
+      return;
+    }
+
+    html += '<div class="hp-kpi">' +
+      '<div class="k"><div class="kl">오늘</div><div class="kv">' + fmtK(d.dToday) + '</div></div>' +
+      '<div class="k"><div class="kl">7일</div><div class="kv">' + fmtK(d.d7) + '</div></div>' +
+      '<div class="k"><div class="kl">30일</div><div class="kv">' + fmtK(d.d30) + '</div></div>' +
+    '</div>';
+
+    // 일별 (최근 ~10일)
+    var days = (d.days || []).slice(-10);
+    if(days.length){
+      var maxDia = Math.max.apply(null, days.map(function(x){ return x.dia; }).concat([1]));
+      var maxMin = Math.max.apply(null, days.map(function(x){ return x.min; }).concat([1]));
+      html += '<div class="hp-sec"><h4>일별 다이아 · 방송</h4><div class="hp-days">';
+      days.forEach(function(x){
+        var hh = Math.max(3, Math.round(x.dia / maxDia * 74));
+        var md = x.d.slice(5).replace("-", "/");
+        html += '<div class="hp-day' + (x.rank && x.rank <= 3 ? " top" : "") + '" title="' + md + ' · ' + fmt(x.dia) + ' 다이아 · ' + Math.round(x.min/60*10)/10 + '시간' + (x.rank ? ' · ' + x.rank + '위' : '') + '">' +
+          '<span class="dm">' + (x.min ? Math.round(x.min/60*10)/10 + 'h' : '') + '</span>' +
+          '<span class="bar" style="height:' + hh + 'px"></span>' +
+          '<span class="dl">' + md + '</span></div>';
+      });
+      html += '</div><div class="hp-legend"><span><b>■</b> 다이아</span><span><i>h</i> 방송시간</span></div></div>';
+    }
+
+    // 최근 방송
+    var ss = d.sessions || [];
+    html += '<div class="hp-sec"><h4>최근 방송</h4>';
+    if(ss.length){
+      html += '<div class="hp-sess">';
+      ss.forEach(function(x){
+        var st = new Date(x.s), day = (st.getMonth()+1) + "/" + st.getDate();
+        var t = String(st.getHours()).padStart(2,"0") + ":" + String(st.getMinutes()).padStart(2,"0");
+        var dur = x.min >= 60 ? Math.floor(x.min/60) + "시간" + (x.min%60 ? " " + (x.min%60) + "분" : "") : x.min + "분";
+        html += '<div class="hp-sr' + (x.on ? " on" : "") + '">' +
+          '<span class="sd">' + day + ' ' + t + '</span>' +
+          '<span class="st">' + (x.on ? "방송 중" : dur) + (x.rank ? " · " + x.rank + "위" : "") + '</span>' +
+          '<span class="sv">' + fmtK(x.dia) + '</span></div>';
+      });
+      html += '</div>';
+    } else {
+      html += '<p class="hp-empty">최근 방송 기록이 없습니다.</p>';
+    }
+    html += '</div>';
+
+    $("hpBody").innerHTML = html;
+  }
+
+  $("rankBody").addEventListener("click", function(ev){
+    var row = ev.target.closest(".hostrow");
+    if(row) openHost(row.getAttribute("data-handle"));
+  });
+  $("rankBody").addEventListener("keydown", function(ev){
+    if(ev.key !== "Enter" && ev.key !== " ") return;
+    var row = ev.target.closest(".hostrow");
+    if(row){ ev.preventDefault(); openHost(row.getAttribute("data-handle")); }
+  });
+  $("rankAll").addEventListener("click", function(){
+    rankNear = false;
+    $("rankAll").setAttribute("aria-pressed","true");
+    $("rankNear").setAttribute("aria-pressed","false");
+    renderRanking();
+  });
+  $("rankNear").addEventListener("click", function(){
+    rankNear = true;
+    $("rankAll").setAttribute("aria-pressed","false");
+    $("rankNear").setAttribute("aria-pressed","true");
+    renderRanking();
+  });
+
+  /* ══ 우리 호스트 대시보드 ══════════════════════════════
+     TikTok LIVE 백스테이지( live-backstage.tiktok.com )의
+     "크리에이터 데이터" / "해외 분석" 표를 붙여넣으면 파싱해서
+     위 리그 랭킹(tikple) · 호스트 상세와 교차해 보여준다.
+     자동 수집은 없음(백스테이지 API는 봇 차단). 매니저가 직접 붙여넣음. */
+  var roster = {hosts:{}, at:null};
+  try{
+    var rs = JSON.parse(localStorage.getItem("offair.roster") || "null");
+    if(rs && rs.hosts && typeof rs.hosts === "object") roster = rs;
+  }catch(e){}
+  function saveRoster(){ try{ localStorage.setItem("offair.roster", JSON.stringify(roster)); }catch(e){} }
+  var rosterSort = "eff";
+
+  function bsNum(s){
+    if(s == null) return 0;
+    s = String(s).trim().replace(/,/g, "").replace(/\s/g, "");
+    var m = s.match(/^([\d.]+)\s*([KkMm]?)/);
+    if(!m) return 0;
+    var v = parseFloat(m[1]) || 0;
+    if(/[Mm]/.test(m[2])) v *= 1e6;
+    else if(/[Kk]/.test(m[2])) v *= 1e3;
+    return Math.round(v);
+  }
+  /* "33시간 47분 2초" · "1,234분" · "5h 20m" → 분 */
+  function bsMins(s){
+    if(!s) return 0;
+    s = String(s);
+    var mins = 0, matched = false;
+    var h = s.match(/([\d.]+)\s*시간/) || s.match(/([\d.]+)\s*h(?:ours?|rs?)?\b/i);
+    var m = s.match(/([\d.]+)\s*분/) || s.match(/([\d.]+)\s*m(?:in(?:ute)?s?)?\b/i);
+    if(h){ mins += parseFloat(h[1]) * 60; matched = true; }
+    if(m){ mins += parseFloat(m[1]); matched = true; }
+    if(!matched){
+      var only = s.match(/^([\d,]+)\s*분?$/);
+      if(only) mins = parseFloat(only[1].replace(/,/g, ""));
+    }
+    return Math.round(mins);
+  }
+  function normHandle(h){ return String(h || "").trim().replace(/^@/, "").toLowerCase(); }
+
+  /* 백스테이지 "크리에이터 데이터" 표 텍스트 파싱.
+     한 호스트 블록 = (닉네임/) @핸들 / 19자리 userID / 상태줄 / 총다이아 / 라이브시간 / 유효일수 / 새팔로워
+     userID(17~20자리 숫자) 줄을 기준으로 앞뒤를 훑는다. 순서가 조금 달라도 종류로 잡음. */
+  function bsIsNum(s){ return /^[\d.,]+\s*[KkMm]?$/.test(String(s).trim()); }
+  function bsIsHandle(s){
+    s = String(s).trim();
+    return /^@?[A-Za-z0-9._]{2,30}$/.test(s) && /[A-Za-z]/.test(s) && !bsIsNum(s);
+  }
+  function parseBackstage(text){
+    var lines = String(text || "").split(/\r?\n/).map(function(x){ return x.trim(); }).filter(Boolean);
+    var found = [];
+    for(var i = 0; i < lines.length; i++){
+      if(!/^\d{17,20}$/.test(lines[i])) continue;
+      var uid = lines[i];
+      // 핸들·닉네임: userID 바로 앞 1~3줄에서
+      var handle = "", name = "";
+      for(var b = i - 1; b >= 0 && b >= i - 3; b--){
+        var L = lines[b];
+        if(/^\d{17,20}$/.test(L)) break;
+        if(!handle && bsIsHandle(L)){ handle = L.replace(/^@/, ""); continue; }
+        if(!name && L && !/^\d/.test(L) && !bsIsNum(L)) name = L;
+      }
+      if(!handle) continue;
+      // userID 뒤 필드 훑기
+      var tail = lines.slice(i + 1, i + 12);
+      var status = "", dia = 0, mins = 0, days = 0, fol = 0, seenTime = false, seenDays = false;
+      for(var t = 0; t < tail.length; t++){
+        var s = tail[t];
+        if(/^\d{17,20}$/.test(s)) break;
+        if(bsIsHandle(s)) break; // 다음 호스트 시작
+        if(/(시간|분|초)/.test(s) && /\d/.test(s) && !seenTime){ mins = bsMins(s); seenTime = true; continue; }
+        if(/^\d[\d,]*\s*일$/.test(s)){ days = parseInt(s.replace(/[^\d]/g, ""), 10) || 0; seenDays = true; continue; }
+        if(bsIsNum(s)){
+          if(!seenTime){ if(!dia) dia = bsNum(s); }        // 라이브시간 앞 = 총다이아
+          else if(seenDays && !fol) fol = bsNum(s);         // 유효일수 뒤 = 새 팔로워
+          continue;
+        }
+        if(!status && /[가-힣]/.test(s)){ status = s; continue; }
+      }
+      found.push({handle:handle, name:name || "", uid:uid, status:status,
+        diamonds:dia, liveMinutes:mins, validDays:days, newFollowers:fol});
+    }
+    return found;
+  }
+
+  /* 백스테이지 "해외 분석" 표 → 호스트별 해외 다이아 비율 · 주요 지역 */
+  function parseOverseas(text){
+    var lines = String(text || "").split(/\r?\n/).map(function(x){ return x.trim(); }).filter(Boolean);
+    var found = [];
+    for(var i = 0; i < lines.length; i++){
+      var hm = lines[i].match(/^@?([A-Za-z0-9._]{2,30})$/);
+      if(!hm || !/[A-Za-z]/.test(hm[1])) continue;
+      var handle = hm[1];
+      var win = lines.slice(i + 1, i + 10).join(" │ ");
+      var pcts = win.match(/(\d{1,3}(?:\.\d+)?)\s*%/g);
+      if(!pcts) continue;
+      var ratio = parseFloat(pcts[0]) / 100;
+      // 지역: 국가/지역명처럼 보이는 토큰
+      var regions = (win.match(/[가-힣A-Za-z]{2,}(?=\s*[\d.]+\s*%)/g) || []).slice(0, 3);
+      found.push({handle:handle, overseasRatio:ratio, regions:regions});
+    }
+    return found;
+  }
+
+  function importRoster(){
+    var note = $("rosterNote");
+    var a = parseBackstage($("bsCreator").value);
+    var o = parseOverseas($("bsOversea").value);
+    if(!a.length && !o.length){
+      note.textContent = "읽을 수 있는 호스트를 못 찾았습니다. 표 전체(닉네임·ID 포함)를 복사했는지 확인하세요.";
+      return;
+    }
+    var added = 0, updated = 0;
+    a.forEach(function(h){
+      var key = normHandle(h.handle);
+      if(roster.hosts[key]) updated++; else added++;
+      var prev = roster.hosts[key] || {};
+      roster.hosts[key] = {
+        handle:h.handle, name:h.name || prev.name || "", uid:h.uid || prev.uid || "",
+        status:h.status || prev.status || "",
+        diamonds:h.diamonds || prev.diamonds || 0,
+        liveMinutes:h.liveMinutes || prev.liveMinutes || 0,
+        validDays:h.validDays || prev.validDays || 0,
+        newFollowers:h.newFollowers || prev.newFollowers || 0,
+        overseasRatio:prev.overseasRatio, regions:prev.regions,
+        savedAt:new Date().toISOString().slice(0, 16).replace("T", " ")
+      };
+    });
+    var oMatched = 0;
+    o.forEach(function(h){
+      var key = normHandle(h.handle);
+      if(!roster.hosts[key]) return;
+      roster.hosts[key].overseasRatio = h.overseasRatio;
+      roster.hosts[key].regions = h.regions;
+      oMatched++;
+    });
+    roster.at = Date.now();
+    saveRoster();
+    var msg = [];
+    if(added) msg.push("추가 " + added);
+    if(updated) msg.push("갱신 " + updated);
+    if(o.length) msg.push("해외분석 " + oMatched + "/" + o.length + " 매칭");
+    note.textContent = msg.join(" · ") + " 완료";
+    $("bsCreator").value = ""; $("bsOversea").value = "";
+    renderRoster();
+  }
+
+  function rEntryCI(handle){
+    var k = normHandle(handle);
+    for(var lg in cuts){
+      var rk = cuts[lg] && cuts[lg].ranking;
+      if(!rk) continue;
+      for(var i = 0; i < rk.length; i++) if(normHandle(rk[i].handle) === k) return {e:rk[i], lg:lg};
+    }
+    return null;
+  }
+  function hDetailCI(handle){
+    var k = normHandle(handle);
+    for(var hh in hostDetail) if(normHandle(hh) === k) return hostDetail[hh];
+    return null;
+  }
+  function trend7(hd){
+    if(hd && Array.isArray(hd.week) && hd.week.length >= 6){
+      var w = hd.week.map(Number);
+      var f = (w[0] + w[1] + w[2]) / 3, l = (w[w.length-1] + w[w.length-2] + w[w.length-3]) / 3;
+      if(f <= 0) return l > 0 ? 1 : 0;
+      return (l - f) / f;
+    }
+    if(hd && hd.d30 > 0 && hd.d7 > 0){ var avg = hd.d30 * 7 / 30; return (hd.d7 - avg) / avg; }
+    return null;
+  }
+  function flagsFor(r){
+    var out = [];
+    if(r.overseasRatio != null && r.overseasRatio >= 0.5) out.push("osea");
+    if(r.eff != null && r.eff < 3500 && r.hours > 25) out.push("loeff");
+    if(r.eff != null && r.eff > 10000 && (r.hours < 20 || r.validDays < 7)) out.push("chance");
+    return out;
+  }
+  var FLAG_ICON = {osea:"🔴", loeff:"🟠", chance:"🟢"};
+  var FLAG_TXT  = {osea:"해외 고정", loeff:"저효율", chance:"기회"};
+
+  function renderRoster(){
+    var keys = Object.keys(roster.hosts);
+    var ctl = $("rosterCtl"), wrap = $("rosterWrap"), empty = $("rosterEmpty"), sum = $("rosterSum");
+    $("rosterInputSum").textContent = keys.length ? keys.length + "명 저장됨" + (roster.at ? " · " + new Date(roster.at).toISOString().slice(5,16).replace("T"," ") : "") : "";
+    if(!keys.length){
+      sum.textContent = "아직 없습니다.";
+      ctl.hidden = true; wrap.hidden = true;
+      empty.hidden = false;
+      empty.textContent = "위 ‘백스테이지 붙여넣기’를 열어 크리에이터 데이터 표를 붙여넣으세요.";
+      return;
+    }
+    empty.hidden = true; ctl.hidden = false; wrap.hidden = false;
+
+    var rows = keys.map(function(k){
+      var h = roster.hosts[k];
+      var re = rEntryCI(h.handle);
+      var hd = hDetailCI(h.handle);
+      var hours = h.liveMinutes ? h.liveMinutes / 60 : 0;
+      var eff = hours > 0.2 ? h.diamonds / hours : null;
+      var row = {
+        key:k, handle:(re && re.e.handle) || h.handle, name:h.name || (hd && hd.name) || (re && re.e.name) || "",
+        uid:h.uid || (re && re.e.uid), lg:re ? re.lg : null, rank:re ? re.e.rank : null,
+        avatar:(re && re.e.avatar) || null, color:(re && re.e.color) || null,
+        diamonds:h.diamonds, hours:hours, eff:eff, validDays:h.validDays,
+        overseasRatio:h.overseasRatio, regions:h.regions,
+        trend:trend7(hd), status:h.status
+      };
+      row.flags = flagsFor(row);
+      return row;
+    });
+
+    rows.sort(function(a, b){
+      if(rosterSort === "dia") return b.diamonds - a.diamonds;
+      if(rosterSort === "flag"){
+        var pa = (a.flags.indexOf("osea")>=0?100:0) + (a.flags.indexOf("loeff")>=0?10:0) + (a.flags.indexOf("chance")>=0?1:0);
+        var pb = (b.flags.indexOf("osea")>=0?100:0) + (b.flags.indexOf("loeff")>=0?10:0) + (b.flags.indexOf("chance")>=0?1:0);
+        if(pb !== pa) return pb - pa;
+        return b.diamonds - a.diamonds;
+      }
+      // eff: 낮은(문제) 순, 데이터 없으면 뒤로
+      var ea = a.eff == null ? Infinity : a.eff, eb = b.eff == null ? Infinity : b.eff;
+      return ea - eb;
+    });
+
+    var html = rows.map(function(r){
+      var col = /^#[0-9a-fA-F]{3,8}$/.test(r.color || "") ? esc(r.color) : "var(--surface-2)";
+      var ph = '<span class="av ph" style="background:' + col + '">' + esc(initialOf(r.name, r.handle)) + '</span>';
+      var av = r.avatar
+        ? '<span class="avwrap">' + ph + '<img class="av" src="' + esc(r.avatar) + '" alt="" loading="lazy" onerror="this.remove()"></span>'
+        : ph;
+      var lgcell = r.lg ? '<span class="rlg">' + esc(r.lg) + '</span> ' + (r.rank ? r.rank + '위' : '') : '<span class="rmiss">랭킹 밖</span>';
+      var effCls = r.eff == null ? "" : (r.eff < 3500 ? " lo" : (r.eff > 10000 ? " hi" : ""));
+      var effTxt = r.eff == null ? '<span class="rmiss">–</span>' : '<strong>' + fmtK(Math.round(r.eff)) + '</strong>';
+      var tr = r.trend;
+      var trendTxt = tr == null ? '<span class="rmiss">–</span>'
+        : (tr >= 0.03 ? '<span class="u">▲ ' + Math.round(tr*100) + '%</span>'
+        : (tr <= -0.03 ? '<span class="d">▼ ' + Math.round(-tr*100) + '%</span>' : '±0%'));
+      var os = r.overseasRatio == null ? '<span class="rmiss">–</span>'
+        : Math.round(r.overseasRatio * 100) + '%';
+      var osCls = (r.overseasRatio != null && r.overseasRatio >= 0.5) ? " hot" : "";
+      var flags = r.flags.length
+        ? '<span class="rflag">' + r.flags.map(function(f){ return '<span title="' + FLAG_TXT[f] + '">' + FLAG_ICON[f] + '</span>'; }).join("") + '</span>'
+        : '<span class="rmiss">–</span>';
+      return '<tr data-handle="' + esc(r.handle) + '" tabindex="0" title="@' + esc(r.handle) + ' 상세">' +
+        '<td class="rname"><span class="rn">' + av + '<span class="hn"><b>' + (r.name ? esc(r.name) : "@" + esc(r.handle)) + '</b><i>@' + esc(r.handle) + '</i></span></span></td>' +
+        '<td>' + lgcell + '</td>' +
+        '<td class="big">' + (r.diamonds ? fmtK(r.diamonds) : '<span class="rmiss">–</span>') + '</td>' +
+        '<td>' + (r.hours ? (Math.round(r.hours*10)/10) : '<span class="rmiss">–</span>') + '</td>' +
+        '<td class="eff' + effCls + '">' + effTxt + '</td>' +
+        '<td>' + (r.validDays ? r.validDays + '일' : '<span class="rmiss">–</span>') + '</td>' +
+        '<td class="osea' + osCls + '">' + os + '</td>' +
+        '<td class="trend">' + trendTxt + '</td>' +
+        '<td>' + flags + '</td>' +
+      '</tr>';
+    }).join("");
+    $("rosterBody").innerHTML = html;
+
+    var probs = rows.filter(function(r){ return r.flags.length; }).length;
+    sum.textContent = keys.length + "명 · 플래그 " + probs + "명";
+  }
+
+  $("rosterBtn").addEventListener("click", importRoster);
+  $("rosterClear").addEventListener("click", function(){
+    if(!confirm("저장된 우리 호스트 목록을 전부 지웁니다. 계속할까요?")) return;
+    roster = {hosts:{}, at:null};
+    saveRoster();
+    renderRoster();
+    $("rosterNote").textContent = "지웠습니다.";
+  });
+  function setRosterSort(mode){
+    rosterSort = mode;
+    [["eff","rsEff"],["dia","rsDia"],["flag","rsFlag"]].forEach(function(p){
+      $(p[1]).setAttribute("aria-pressed", p[0] === mode ? "true" : "false");
+    });
+    renderRoster();
+  }
+  $("rsEff").addEventListener("click", function(){ setRosterSort("eff"); });
+  $("rsDia").addEventListener("click", function(){ setRosterSort("dia"); });
+  $("rsFlag").addEventListener("click", function(){ setRosterSort("flag"); });
+  $("rosterBody").addEventListener("click", function(ev){
+    var tr = ev.target.closest("tr[data-handle]");
+    if(tr) openHost(tr.getAttribute("data-handle"));
+  });
+  $("rosterBody").addEventListener("keydown", function(ev){
+    if(ev.key !== "Enter" && ev.key !== " ") return;
+    var tr = ev.target.closest("tr[data-handle]");
+    if(tr){ ev.preventDefault(); openHost(tr.getAttribute("data-handle")); }
+  });
+
+  /* ── 컷 데이터 입력 ── */
+  function loadCutCard(){
+    var e = cuts[state.league] || {};
+    $("cutTitle").textContent = state.league + " 리그";
+    $("c3").value = scoreOf(e,3) != null ? scoreOf(e,3) : "";
+    $("c2").value = scoreOf(e,2) != null ? scoreOf(e,2) : "";
+    $("c1").value = scoreOf(e,1) != null ? scoreOf(e,1) : "";
+    $("c0").value = scoreOf(e,0) != null ? scoreOf(e,0) : "";
+    var r = rulesFor(state.league);
+    $("c3").disabled = !r.p3;
+    $("c3").placeholder = r.p3 ? "예: 281942" : "A·B 리그만 해당";
+    $("c0").disabled = !r.keep;
+    $("c0").placeholder = !r.keep ? "차감 없는 리그"
+      : keepEstimated(state.league) ? "LIVE센터 유지컷" : "예: 11821";
+    $("savenote").textContent = e.savedAt
+      ? (srcName(e) ? srcName(e) + " 조각컷 · " : "") + e.savedAt + " · 인원 " + (e.count || "?") + "명"
+        + (keepEstimated(state.league) ? " · 유지컷 추정치" : "")
+      : "저장된 컷 없음";
+    $("cutHint").textContent = hasCuts(state.league)
+      ? "저장된 컷과 비교합니다."
+      : "컷이 없습니다. 아래에서 먼저 넣어주세요.";
+    $("preview").className = "preview";
+
+    /* 접힌 헤더 요약 */
+    var lgs = 0;
+    for(var k in cuts){ if(cuts[k] && cuts[k].rows && hasCuts(k)) lgs++; }
+    $("cutDataSum").textContent = lgs
+      ? (e.savedAt ? e.savedAt + " · " : "") + lgs + "개 리그 저장됨"
+      : "저장 안 됨 — 눌러서 붙여넣기";
+  }
+
+  /* 붙여넣은 랭킹에서 다이아만 뽑기 */
+  function parseScores(text){
+    var out = [];
+    var re = /([0-9][0-9,\.]*)([KkMm])?/g, m;
+    while((m = re.exec(text)) !== null){
+      var raw = m[1].replace(/,/g, "");
+      var v = parseFloat(raw);
+      if(!isFinite(v)) continue;
+      var suf = m[2];
+      if(suf === "K" || suf === "k") v *= 1000;
+      else if(suf === "M" || suf === "m") v *= 1000000;
+      v = Math.round(v);
+      if(v >= 100) out.push(v);   /* 순위·인원 같은 작은 수는 버림 */
+    }
+    return out.sort(function(a,b){ return b - a; });
+  }
+
+  function buildRows(scores, count, lg){
+    return specFor(lg).map(function(sp){
+      var rank = cutRank(sp.pct, count);
+      return {pct:sp.pct, fragments:sp.fragments, rank:rank, score: scores[rank-1] != null ? scores[rank-1] : null};
+    });
+  }
+  function prevOf(lg){
+    var e = cuts[lg];
+    if(!e || !e.rows) return null;
+    var p = {};
+    e.rows.forEach(function(row){ p["f"+row.fragments] = row.score; });
+    return p;
+  }
+  function stamp(){
+    var t = new Date();
+    return (t.getMonth()+1) + "월 " + t.getDate() + "일 " + String(t.getHours()).padStart(2,"0") + ":" + String(t.getMinutes()).padStart(2,"0");
+  }
+
+  $("parseBtn").addEventListener("click", function(){
+    var scores = parseScores($("ranktext").value);
+    $("parsenote").textContent = "읽어들인 다이아: " + scores.length + "개";
+    if(scores.length < 2){
+      $("preview").className = "preview on";
+      $("preview").innerHTML = '<div class="prow"><span>숫자를 찾지 못했습니다. 다이아 값이 포함된 랭킹을 붙여넣어 주세요.</span></div>';
+      return;
+    }
+    var count = scores.length;
+    var rows = buildRows(scores, count, state.league);
+    var median = scores[Math.floor((count-1)/2)];
+    var keepRanking = (cuts[state.league] || {}).ranking || null;
+    cuts[state.league] = {
+      league: state.league, tier: state.league[0], count: count, top: scores[0], median: median,
+      ranking: keepRanking,
+      rows: rows, prev: prevOf(state.league), savedAt: stamp(), source: "paste"
+    };
+    saveCuts();
+
+    var html = '<div class="prow"><span>인원</span><b>' + count + '명</b></div>' +
+               '<div class="prow"><span>1위</span><b>' + fmt(scores[0]) + '</b></div>' +
+               '<div class="prow"><span>중앙값</span><b>' + fmt(median) + '</b></div>';
+    rows.forEach(function(row){
+      html += '<div class="prow"><span>' + (row.fragments ? "+" + row.fragments + " 조각" : "유지") +
+              ' · 상위 ' + Math.round(row.pct*100) + '% (' + row.rank + '위)</span><b>' +
+              (row.score != null ? fmt(row.score) : "데이터 부족") + '</b></div>';
+    });
+    $("preview").className = "preview on";
+    $("preview").innerHTML = html;
+
+    loadCutCard(); renderTable(); renderRanking();
+    if(!$("cutFields").hidden || hasCuts(state.league)) render();
+    render();
+  });
+
+  $("saveCut").addEventListener("click", function(){
+    function numOrNull(el){
+      if(el.disabled) return null;
+      var v = String(el.value).trim();
+      if(v === "") return null;
+      var n = Number(v);
+      return isFinite(n) ? n : null;
+    }
+    var vals = {3:numOrNull($("c3")), 2:numOrNull($("c2")), 1:numOrNull($("c1")), 0:numOrNull($("c0"))};
+    var n = Math.max(2, state.total);
+    var rows = specFor(state.league).map(function(sp){
+      return {pct:sp.pct, fragments:sp.fragments, rank:cutRank(sp.pct, n), score: vals[sp.fragments]};
+    });
+    var old = cuts[state.league] || {};
+    cuts[state.league] = {
+      league: state.league, tier: state.league[0], count: n,
+      top: old.top != null ? old.top : null, median: old.median != null ? old.median : null,
+      ranking: old.ranking || null,
+      rows: rows, prev: prevOf(state.league), savedAt: stamp(), source: "manual"
+    };
+    saveCuts(); loadCutCard(); renderTable(); renderRanking(); render();
+  });
+
+  $("clearCut").addEventListener("click", function(){
+    delete cuts[state.league]; saveCuts(); loadCutCard(); renderTable(); renderRanking(); render();
+  });
+
+  function setSource(s){
+    $("src-tikdo").setAttribute("aria-pressed", s==="tikdo" ? "true":"false");
+    $("src-paste").setAttribute("aria-pressed", s==="paste" ? "true":"false");
+    $("src-manual").setAttribute("aria-pressed", s==="manual" ? "true":"false");
+    $("tikdoBox").hidden = s !== "tikdo";
+    $("pasteBox").hidden = s !== "paste";
+    $("manualBox").hidden = s !== "manual";
+  }
+  $("src-tikdo").addEventListener("click", function(){ setSource("tikdo"); });
+  $("src-paste").addEventListener("click", function(){ setSource("paste"); });
+  $("src-manual").addEventListener("click", function(){ setSource("manual"); });
+
+  /* ── 틱두 조각컷 페이지 전체 붙여넣기 ── */
+  function tkNum(s){
+    if(s == null) return null;
+    s = String(s).trim();
+    if(s === "-" || s === "") return null;
+    var m = s.match(/^([\d,.]+)\s*([KkMm])?$/);
+    if(!m) return null;
+    var v = parseFloat(m[1].replace(/,/g,""));
+    if(!isFinite(v)) return null;
+    if(m[2] && m[2].toUpperCase() === "K") v *= 1e3;
+    if(m[2] && m[2].toUpperCase() === "M") v *= 1e6;
+    return Math.round(v);
+  }
+  var TK_FRAG = {1:3, 10:2, 20:1, 50:0, 70:0, 80:0};
+  function parseTikdo(text){
+    var lines = String(text).split(/\r?\n/).map(function(s){ return s.trim(); });
+    var out = {}, cur = null;
+    for(var i=0;i<lines.length;i++){
+      var ln = lines[i];
+      var lg = ln.match(/^([A-D][1-5])$/);
+      if(lg){ cur = lg[1]; out[cur] = []; continue; }
+      if(!cur) continue;
+      var tm = ln.match(/^Top\s+(\d+)%\s+(.+)$/);
+      if(!tm) continue;
+      var pct = Number(tm[1]);
+      if(TK_FRAG[pct] === undefined) continue;
+      var nums = tm[2].trim().split(/\s+/);   // [어제, 어제이때]
+      var rt = null;
+      for(var j=i+1;j<lines.length && j<i+4;j++){
+        if(/^-$|^[\d,.]+\s*[KkMm]?$/.test(lines[j])){ rt = lines[j]; break; }
+        if(/^[+\-]?\d$/.test(lines[j])) break;
+      }
+      out[cur].push({
+        pct: pct/100,
+        fragments: TK_FRAG[pct],
+        score: tkNum(rt),
+        prevClose: tkNum(nums[0])
+      });
+    }
+    return out;
+  }
+
+  $("tikdoBtn").addEventListener("click", function(){
+    var parsed = parseTikdo($("tikdotext").value);
+    var names = Object.keys(parsed).filter(function(lg){ return LADDER.indexOf(lg) >= 0 && parsed[lg].length; });
+    if(!names.length){
+      $("tikdopreview").className = "preview on";
+      $("tikdopreview").innerHTML = '<div class="prow"><span>리그를 못 찾았습니다. 페이지 전체를 복사해 붙여넣었는지 확인하세요.</span></div>';
+      $("tikdonote").textContent = "";
+      return;
+    }
+    var ok = 0;
+    names.forEach(function(lg){
+      var rows = parsed[lg].filter(function(r){ return r.score != null || r.prevClose != null; });
+      if(!rows.length) return;
+      var prev = {};
+      rows.forEach(function(r){ if(r.prevClose != null) prev["f"+r.fragments] = r.prevClose; });
+      var old = cuts[lg] || {};
+      cuts[lg] = {
+        league: lg, tier: lg[0],
+        count: old.count || 99,
+        top: (rows.find(function(r){ return r.fragments === 3; }) || {}).score || old.top || null,
+        median: old.median != null ? old.median : null,
+        ranking: old.ranking || [],
+        rows: rows.map(function(r){ return {pct:r.pct, fragments:r.fragments, score:r.score}; }),
+        prev: Object.keys(prev).length ? prev : null,
+        savedAt: stamp(), source: "tikdo-cutoffs"
+      };
+      ok++;
+    });
+    saveCuts();
+    $("tikdonote").textContent = ok + "개 리그 컷 저장 완료";
+    var html = '';
+    names.forEach(function(lg){
+      var e = cuts[lg]; if(!e || e.source !== "tikdo-cutoffs") return;
+      var g = function(f){ var r = e.rows.find(function(x){ return x.fragments === f; }); return r && r.score != null ? fmt(r.score) : "-"; };
+      html += '<div class="prow"><span>' + lg + '</span><b>+2 ' + g(2) + ' · +1 ' + g(1) + ' · 유지 ' + g(0) + '</b></div>';
+    });
+    $("tikdopreview").className = "preview on";
+    $("tikdopreview").innerHTML = html;
+    loadCutCard(); renderTable(); renderRanking(); render();
+  });
+
+  /* ── 입력 동기화 ── */
+  function syncInputs(){
+    sel.value = state.league;
+    $("rank").value = state.rank;
+    $("total").value = state.total;
+    $("diamond").value = state.diamond;
+    $("shield").value = state.shield;
+    $("guardian").checked = !!state.guardian;
+    Array.prototype.forEach.call(document.querySelectorAll("#shardpick button"), function(b){
+      b.setAttribute("aria-pressed", Number(b.dataset.s) === state.shards ? "true" : "false");
+    });
+    $("mode-rank").setAttribute("aria-pressed", state.mode==="rank" ? "true":"false");
+    $("mode-cut").setAttribute("aria-pressed", state.mode==="cut" ? "true":"false");
+    $("rankFields").hidden = state.mode !== "rank";
+    $("cutFields").hidden = state.mode !== "cut";
+  }
+
+  sel.addEventListener("change", function(){
+    state.league = sel.value;
+    rankLg = null;   /* 랭킹도 선택 리그를 따라감 */
+    loadCutCard(); renderTable(); renderRanking(); render(); persist();
+  });
+  ["rank","total","diamond","shield"].forEach(function(id){
+    $(id).addEventListener("input", function(){
+      var v = Number($(id).value);
+      if(!isFinite(v)) return;
+      if(id === "rank"){ state.rank = Math.max(1, Math.round(v)); renderRanking(); }
+      if(id === "total"){ state.total = Math.max(2, Math.round(v)); renderTable(); }
+      if(id === "diamond") state.diamond = Math.max(0, v);
+      if(id === "shield") state.shield = Math.min(10, Math.max(0, Math.round(v)));
+      render(); persist();
+    });
+  });
+  $("rankUp").addEventListener("click", function(){
+    state.rank = Math.max(1, state.rank - 1); $("rank").value = state.rank; renderRanking(); render(); persist();
+  });
+  $("rankDown").addEventListener("click", function(){
+    state.rank = Math.min(Math.max(2, state.total), state.rank + 1); $("rank").value = state.rank; renderRanking(); render(); persist();
+  });
+  $("guardian").addEventListener("change", function(){ state.guardian = this.checked; render(); persist(); });
+
+  Array.prototype.forEach.call(document.querySelectorAll("#shardpick button"), function(b){
+    b.addEventListener("click", function(){
+      state.shards = Number(b.dataset.s);
+      syncInputs(); render(); persist();
+    });
+  });
+
+  function setMode(m){ state.mode = m; syncInputs(); loadCutCard(); renderRanking(); render(); persist(); }
+  $("mode-rank").addEventListener("click", function(){ setMode("rank"); });
+  $("mode-cut").addEventListener("click", function(){ setMode("cut"); });
+
+  $("reset").addEventListener("click", function(){
+    for(var k2 in DEFAULTS) state[k2] = DEFAULTS[k2];
+    syncInputs(); loadCutCard(); renderTable(); renderRanking(); render(); persist();
+  });
+
+  $("sgo").addEventListener("click", function(){
+    var el = $("result");
+    if(el.scrollIntoView) el.scrollIntoView({behavior:"smooth", block:"start"});
+  });
+
+  $("shareBtn").addEventListener("click", function(){
+    var box = $("sharebox"), ta = $("sharetext"), btn = this;
+    ta.value = lastSummary || "계산 결과가 아직 없습니다.";
+    function done(msg){ btn.textContent = msg; setTimeout(function(){ btn.textContent = "결과 요약 복사"; }, 2200); }
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(ta.value).then(function(){ done("복사했습니다"); })
+        .catch(function(){ box.style.display = "block"; ta.select(); done("아래에서 복사하세요"); });
+    } else { box.style.display = "block"; ta.select(); done("아래에서 복사하세요"); }
+  });
+
+  var tb = $("themebtn");
+  function currentDark(){
+    var stamp2 = document.documentElement.getAttribute("data-theme");
+    if(stamp2) return stamp2 === "dark";
+    return !window.matchMedia("(prefers-color-scheme: light)").matches;
+  }
+  function syncBtn(){ tb.textContent = currentDark() ? "라이트 모드" : "다크 모드"; }
+  tb.addEventListener("click", function(){
+    document.documentElement.setAttribute("data-theme", currentDark() ? "light" : "dark");
+    syncBtn();
+  });
+  syncBtn();
+
+  function syncBar(){ document.body.classList.toggle("hasbar", window.matchMedia("(max-width:980px)").matches); }
+  window.addEventListener("resize", syncBar);
+  syncBar();
+
+  /* 저장된 컷이 있으면 다이아 모드로 시작 */
+  if(hasCuts(state.league) && !localStorage.getItem("offair.league.state")) state.mode = "cut";
+
+  setSource("tikdo");
+  buildRankTabs();
+  syncInputs();
+  loadCutCard();
+  renderTable();
+  renderRanking();
+  render();
+  renderRoster();
+
+  loadRemoteCuts();
+  loadRemoteHosts();
+  setInterval(loadRemoteCuts, 5 * 60 * 1000);
+  setInterval(loadRemoteHosts, 5 * 60 * 1000);
+})();
+</script>

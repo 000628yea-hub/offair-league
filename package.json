@@ -1,0 +1,16 @@
+{
+  "name": "offair-league-simulator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "OFF-AIR E&M TikTok LIVE 리그 조각·승급 계산기 + 리그별 랭킹 + 우리 호스트 대시보드",
+  "scripts": {
+    "start": "node server.js",
+    "collect": "node collect.js",
+    "collect:watch": "node collect.js --watch 20",
+    "collect:photos": "node collect.js --photos 2000",
+    "build": "node collect.js --photos 400"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
