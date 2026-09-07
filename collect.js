@@ -156,11 +156,18 @@ function pick(pay, key) {
 /* /host/u/{uid} 페이지에서 사진 + 상세(팔로워·다이아·일별·방송기록) 뽑기 */
 async function fetchHostPage(uid) {
   const pay = await getPayload("https://www.tikple.com/host/u/" + uid);
-  const am = pay.match(/"image":"(https:\/\/[^"]+tiktokcdn[^"]+)"/);
-  const avatar = am ? am[1].replace(/\\u0026/g, "&") : null;
 
   let detail = null;
   const h = pick(pay, "host");
+
+  // 사진: 2026-09 틱플이 host.avatarUrl 로 옮김 (예전엔 JSON-LD "image")
+  let avatar = h && h.avatarUrl ? String(h.avatarUrl) : null;
+  if (!avatar) {
+    const am = pay.match(/"(?:avatarUrl|image)":"(https:\/\/[^"]+tiktokcdn[^"]+)"/);
+    if (am) avatar = am[1];
+  }
+  if (avatar) avatar = avatar.replace(/\\u0026/g, "&").replace(/\\\//g, "/");
+
   if (h) {
     const days = (pick(pay, "days") || [])
       .filter((d) => d && d.hasData)

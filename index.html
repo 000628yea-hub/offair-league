@@ -855,7 +855,9 @@ footer b{color:var(--ink-2);font-weight:600}
   var FILE_MODE = location.protocol === "file:";
   /* localhost = 개발자(collect.js 직접 돌림) · 그 외 = 배포본(자동 수집) */
   var LOCAL_MODE = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
-  if(FILE_MODE){
+  /* 미리보기용 단일 파일: 데이터가 <script id="__seed_*"> 로 박혀 있으면 서버 불필요 */
+  var HAS_SEED = !!document.getElementById("__seed_cuts");
+  if(FILE_MODE && !HAS_SEED){
     try{
       var b = document.createElement("div");
       b.style.cssText = "position:sticky;top:0;z-index:80;background:#E24A32;color:#fff;font:600 13px/1.5 Pretendard,sans-serif;padding:10px 16px;text-align:center";
@@ -914,37 +916,52 @@ footer b{color:var(--ink-2);font-weight:600}
 
   /* data/cuts.json 자동 로드 — collect.js 가 주기적으로 만들어 두는 파일.
      파일이 없거나(file:// 더블클릭 등) 실패하면 조용히 무시하고 기존 동작 유지. */
+  function embeddedJSON(id){
+    try{ var el = document.getElementById(id); return el && el.textContent.trim() ? JSON.parse(el.textContent) : null; }
+    catch(e){ return null; }
+  }
+
   var remoteCutAt = null;
+  function applyRemoteCuts(data){
+    if(!data || typeof data !== "object") return;
+    var changed = false;
+    for(var lg in data){
+      var e = data[lg];
+      if(!e || !e.rows) continue;
+      cuts[lg] = e;
+      changed = true;
+    }
+    if(!changed) return;
+    remoteCutAt = new Date();
+    saveCuts();
+    loadCutCard(); renderTable(); renderRanking(); render(); renderRoster();
+  }
   function loadRemoteCuts(){
+    var seed = embeddedJSON("__seed_cuts");
+    if(seed) applyRemoteCuts(seed);
     if(typeof fetch !== "function") return;
     fetch("data/cuts.json?t=" + Date.now(), {cache:"no-store"})
       .then(function(r){ return r && r.ok ? r.json() : null; })
-      .then(function(data){
-        if(!data || typeof data !== "object") return;
-        var changed = false;
-        for(var lg in data){
-          var e = data[lg];
-          if(!e || !e.rows) continue;
-          cuts[lg] = e;
-          changed = true;
-        }
-        if(!changed) return;
-        remoteCutAt = new Date();
-        saveCuts();
-        loadCutCard(); renderTable(); renderRanking(); render(); renderRoster();
-      })
+      .then(applyRemoteCuts)
       .catch(function(){});
   }
 
   /* 호스트 상세 (data/hosts.json) — 팔로워·다이아·일별·방송기록 */
   var hostDetail = {};
+  function applyRemoteHosts(data){
+    if(data && typeof data === "object" && Object.keys(data).length){
+      hostDetail = data;
+      if(openPanelHandle) renderHostPanel(openPanelHandle);
+      renderRoster();
+    }
+  }
   function loadRemoteHosts(){
+    var seed = embeddedJSON("__seed_hosts");
+    if(seed) applyRemoteHosts(seed);
     if(typeof fetch !== "function") return;
     fetch("data/hosts.json?t=" + Date.now(), {cache:"no-store"})
       .then(function(r){ return r && r.ok ? r.json() : null; })
-      .then(function(data){
-        if(data && typeof data === "object"){ hostDetail = data; if(openPanelHandle) renderHostPanel(openPanelHandle); renderRoster(); }
-      })
+      .then(applyRemoteHosts)
       .catch(function(){});
   }
 
