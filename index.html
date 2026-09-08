@@ -360,7 +360,10 @@ td .no{color:var(--muted);font-family:Pretendard,sans-serif;font-size:12px;font-
 #rankScroll{max-height:600px;overflow-y:auto;border:0;border-top:1.5px solid var(--rule);border-bottom:1.5px solid var(--rule);border-radius:0;background:transparent}
 
 /* 우리 호스트 대시보드 */
-#rosterScroll{max-height:640px;overflow:auto;border:0;border-top:1.5px solid var(--rule);border-bottom:1.5px solid var(--rule);border-radius:0;background:transparent}
+#rosterScroll,#rosterScrollOv{max-height:640px;overflow:auto;border:0;border-top:1.5px solid var(--rule);border-bottom:1.5px solid var(--rule);border-radius:0;background:transparent;margin-bottom:6px}
+#rosterOverview .rtab td{padding:9px 10px 9px 0}
+.dgsec{margin-top:2px}
+.dgsec .dgh{padding-top:16px;margin-bottom:8px}
 .rtab{width:100%;border-collapse:collapse;font-size:13px;min-width:720px}
 .rtab thead th{position:sticky;top:0;z-index:1;background:var(--surface-2);color:var(--muted);
   font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;text-align:right;
@@ -787,47 +790,54 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
       </div>
     </details>
 
-    <div class="rankctl" id="rosterCtl" hidden>
-      <div class="seg" role="group" aria-label="정렬" style="margin:0;flex:1 1 300px;max-width:420px;grid-template-columns:1fr 1fr 1fr">
-        <button type="button" id="rsEff" aria-pressed="true">효율 낮은 순</button>
-        <button type="button" id="rsDia" aria-pressed="false">다이아순</button>
-        <button type="button" id="rsFlag" aria-pressed="false">문제순</button>
-      </div>
-    </div>
     <p id="rosterEmpty" class="sub" style="margin:0" hidden></p>
     <div id="rosterWrap" hidden>
+      <div id="rosterOverview"></div>
       <div id="rosterDiag"></div>
-      <div id="rosterScroll">
-        <table class="rtab">
-          <thead><tr>
-            <th>호스트</th><th>리그·순위</th><th>총다이아</th><th>방송h</th>
-            <th>K/시간</th><th>유효일</th><th>해외%</th><th>노출</th><th>플래그</th>
-          </tr></thead>
-          <tbody id="rosterBody"></tbody>
-        </table>
-      </div>
-      <div class="rlegend" id="rLegend">
-        <span>🌐 <b>해외 라인</b> 해외 다이아 50%↑ — 문제 아님, 대상 지역 최적화</span>
-        <span>🔺 <b>방향 흔들림</b> 한국 라인인데 해외 급증 + 다이아 정체</span>
-        <span>🟠 <b>저효율</b> 시간당 4K 미만 — 밀도(오프닝·선물유도) 문제</span>
-        <span>🟡 <b>전환 실패</b> 노출 큰데 시간당 낮음 — 시청자를 못 잡음</span>
-        <span>🟢 <b>기회</b> 효율 8K↑인데 방송 22h 미만 — 시간만 늘리면 승급권</span>
-        <span>⚫ <b>방송일 부족</b> 유효일 3일 이하</span>
-      </div>
 
-      <details class="fold" id="lgGapFold" style="margin-top:20px">
-        <summary><h2>A리그 상위권과 뭐가 다른가</h2> <span class="savenote" id="lgGapSum"></span></summary>
-        <div class="panel"><div id="lgGapBody"></div></div>
-      </details>
-      <details class="fold" id="agencyFold">
-        <summary><h2>에이전시 — 이번 달 할 것</h2></summary>
-        <div class="panel">
+      <div class="dgsec" id="lgGap">
+        <p class="dgh" style="border-top:1.5px solid var(--rule)">A리그 상위권과 뭐가 다른가</p>
+        <div id="lgGapBody"></div>
+      </div>
+      <div class="dgsec">
+        <p class="dgh" style="border-top:1.5px solid var(--rule)">에이전시 — 이번 달 할 것</p>
+        <div>
           <ul class="faq" style="grid-template-columns:1fr;border-top:0">
             <li class="fcard" style="border-right:0;padding-left:0"><span class="tag">매치</span><h4>지역 간 매치 부활</h4><p>참여 <b>200명 → 18명(−91%)</b>. 매치 1건당 신규 해외 팔로워 4명, 매치 해외 다이아 114K(+73%). <b>한국 라인 ↔ 해외 라인을 섞는 유일한 수단</b> — 지금 죽어 있어서 두 라인이 완전히 분리됨.</p></li>
             <li class="fcard" style="border-right:0;padding-left:0"><span class="tag">영상</span><h4>영상 업로드 독려</h4><p>주 4.28개(전월 3.97). 영상 유입 해외 시청자 4.05K(전월 815 → <b>+397%</b>). 영상→라이브 퍼널이 막 작동. 정체 그룹(ahjkm_ 등)에 특히 필요.</p></li>
             <li class="fcard" style="border-right:0;padding-left:0"><span class="tag">시간대</span><h4>라인별 시간대 정리</h4><p>해외 라인은 대상 지역 피크(yooni=유럽밤/KST오전, joowondae=중동 KST 01–04시, mukdraeyo=동남아). 방향 흔들리는 jjjang.a·hoseok783는 <b>한국/해외 결정 후</b> 한쪽으로. 한국 라인은 KST 20–24시 사수.</p></li>
             <li class="fcard" style="border-right:0;padding-left:0"><span class="tag">신인</span><h4>신인 트랙 분리</h4><p>(a) 노출 받는 골든타임 그룹은 집중 코칭, (b) 나머지는 &lsquo;첫 2주 최소 방송시간&rsquo; 계약부터. 지금은 둘 다 방치 — 휴면 189명 대부분이 온보딩 이탈.</p></li>
           </ul>
+        </div>
+      </div>
+
+      <details class="fold" id="rosterTableFold">
+        <summary><h2>전체 표 · 정렬</h2> <span class="savenote">효율·해외%·노출·플래그</span></summary>
+        <div class="panel">
+          <div class="rankctl" id="rosterCtl">
+            <div class="seg" role="group" aria-label="정렬" style="margin:0;flex:1 1 300px;max-width:420px;grid-template-columns:1fr 1fr 1fr">
+              <button type="button" id="rsEff" aria-pressed="true">효율 낮은 순</button>
+              <button type="button" id="rsDia" aria-pressed="false">다이아순</button>
+              <button type="button" id="rsFlag" aria-pressed="false">문제순</button>
+            </div>
+          </div>
+          <div id="rosterScroll">
+            <table class="rtab">
+              <thead><tr>
+                <th>호스트</th><th>리그·순위</th><th>총다이아</th><th>방송h</th>
+                <th>K/시간</th><th>유효일</th><th>해외%</th><th>노출</th><th>플래그</th>
+              </tr></thead>
+              <tbody id="rosterBody"></tbody>
+            </table>
+          </div>
+          <div class="rlegend" id="rLegend">
+            <span>🌐 <b>해외 라인</b> 해외 다이아 50%↑ — 문제 아님, 대상 지역 최적화</span>
+            <span>🔺 <b>방향 흔들림</b> 한국 라인인데 해외 급증 + 다이아 정체</span>
+            <span>🟠 <b>저효율</b> 시간당 4K 미만 — 밀도(오프닝·선물유도) 문제</span>
+            <span>🟡 <b>전환 실패</b> 노출 큰데 시간당 낮음 — 시청자를 못 잡음</span>
+            <span>🟢 <b>기회</b> 효율 8K↑인데 방송 22h 미만 — 시간만 늘리면 승급권</span>
+            <span>⚫ <b>방송일 부족</b> 유효일 3일 이하</span>
+          </div>
         </div>
       </details>
     </div>
@@ -2057,6 +2067,29 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
     all.forEach(function(x){ var g = DIAG_GROUP[x.dg.kind] || "이상 없음"; (byG[g] = byG[g] || []).push(x); });
     if(!all.length){ el.innerHTML = ""; return; }
 
+    /* 한눈에 — 그룹 요약 */
+    var ov = $("rosterOverview");
+    if(ov){
+      var GNOTE = {
+        "우선 개입":"이번 주 안에. 강등·방송일·밀도·방향",
+        "신인 골든타임 — 지금 코칭":"알고리즘 푸시 받는 중, 4주 안에 잡아야",
+        "끌어올릴 수 있음 — 시간만 늘리면":"효율 검증됨, 시간만 늘리면 승급권",
+        "정체 — 볼륨·유입 한 끗 부족":"하락도 성장도 없음",
+        "신인 — 관리 필요":"궤도 전, 최소 방송량 계약",
+        "해외 라인 — 되돌리지 말고 최적화":"문제 아님. 지역 최적화 + 매치로 섞기",
+        "방송 거의 없음":"복귀 의사 확인",
+        "이상 없음":"페이스 유지"
+      };
+      var active = rows.length, tot = roster.total || 239;
+      ov.innerHTML = '<p class="dgh" style="border-top:0">한눈에 · 활동 ' + active + '명 / 등록 ' + tot + '명 (휴면 ' + Math.max(0, tot - active) + ')</p>' +
+        '<div id="rosterScrollOv"><table class="rtab" style="min-width:0"><tbody>' +
+        DIAG_ORDER.filter(function(g){ return byG[g] && byG[g].length; }).map(function(g){
+          return '<tr><td class="rname" style="font-weight:800">' + esc(g.split(" —")[0]) + '</td>' +
+            '<td style="font-weight:800">' + byG[g].length + '명</td>' +
+            '<td class="rname" style="color:var(--muted);font-family:inherit">' + (GNOTE[g] || "") + '</td></tr>';
+        }).join("") + '</tbody></table></div>';
+    }
+
     function card(x){
       var r = x.r, dg = x.dg;
       var lgm = (r.lg && !/유지컷/.test(dg.problem)) ? '<span class="lgm">' + esc(r.lg) + (r.rank ? ' ' + r.rank + '위' : '') + '</span>' : '';
@@ -2100,9 +2133,8 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
     var ours = rows.filter(function(r){ return r.diamonds > 100000; }).sort(function(a,b){ return b.diamonds - a.diamonds; });
     var top = ours[0];
     var topHd = top ? hDetailCI(top.handle) : null;
-    if(!a1d30 || !top){ $("lgGapFold").hidden = true; return; }
-    $("lgGapFold").hidden = false;
-    $("lgGapSum").textContent = "우리 1위 vs A1 상위";
+    if(!a1d30 || !top){ $("lgGap").hidden = true; return; }
+    $("lgGap").hidden = false;
     var K = fmtK;
     var mult = (topHd && topHd.d30) ? Math.round(a1d30 / topHd.d30) : null;
     var ourFreq = top.validDays ? Math.round(top.validDays / 6 * 100) : null;
