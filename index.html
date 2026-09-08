@@ -746,20 +746,20 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
 <!-- 우리 호스트 대시보드 -->
 <section class="block" id="roster">
   <h2>우리 호스트</h2>
-  <p class="sub"><b id="rosterSum">아직 없습니다.</b> TikTok 백스테이지 <span class="num">크리에이터 데이터</span> 표를 통째로 복사해 붙여넣으면 우리 호스트 목록이 채워집니다. 리그·순위·추세는 위 랭킹 데이터랑 자동으로 맞춰집니다.</p>
+  <p class="sub"><b id="rosterSum">아직 없습니다.</b> 소속 호스트의 <b>효율(다이아÷시간)</b>·<b>해외 비율</b>(알고리즘이 한국인지 외국인지)·<b>노출</b>을 한 판에. 최신화하려면 백스테이지 <span class="num">데이터 → 크리에이터 데이터</span> 페이지를 <span class="num">Ctrl+A</span>로 통째 복사해 아래에 붙여넣으세요. 리그·순위는 위 랭킹과 자동으로 맞춰집니다.</p>
   <div class="panel">
     <details class="fold" id="rosterInput">
       <summary><h2>백스테이지 붙여넣기</h2> <span class="savenote" id="rosterInputSum"></span></summary>
       <div class="panel">
         <div class="field">
           <label for="bsCreator">① 크리에이터 데이터</label>
-          <textarea id="bsCreator" placeholder="백스테이지 → 데이터 → 크리에이터 데이터 → 페이지 전체 선택(Ctrl+A) → 복사 → 붙여넣기 (여러 페이지 나눠서 붙여도 됩니다)"></textarea>
-          <span class="hint">핸들·총다이아·라이브시간·유효일수·새팔로워를 읽습니다.</span>
+          <textarea id="bsCreator" placeholder="백스테이지 › 데이터 › 크리에이터 데이터 → 페이지에서 Ctrl+A → Ctrl+C → 여기 붙여넣기.&#10;페이지가 여러 장이면 넘겨가며 각 장을 이어 붙이면 됩니다."></textarea>
+          <span class="hint">총다이아·라이브시간·유효일·새팔로워·해외 비율·노출·시청자를 읽습니다.</span>
         </div>
         <div class="field">
           <label for="bsOversea">② 해외 분석 <span style="color:var(--muted);font-weight:400">(선택)</span></label>
-          <textarea id="bsOversea" placeholder="백스테이지 → 데이터 → 해외 분석 → 크리에이터별 표 부분 복사 → 붙여넣기" style="min-height:110px"></textarea>
-          <span class="hint">호스트별 해외 다이아 비율·주요 지역을 읽습니다.</span>
+          <textarea id="bsOversea" placeholder="백스테이지 › 데이터 › 해외 분석 → ‘해외에서 잠재력이 높은 크리에이터’ 표 부분을 복사해 붙여넣기" style="min-height:110px"></textarea>
+          <span class="hint">해외 고정 호스트의 주요 지역(브라질·중동·태국 등)을 채웁니다.</span>
         </div>
         <div class="cutbar">
           <button class="btn" type="button" id="rosterBtn">불러오기</button>
@@ -782,13 +782,14 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
         <table class="rtab">
           <thead><tr>
             <th>호스트</th><th>리그·순위</th><th>총다이아</th><th>방송h</th>
-            <th>K/시간</th><th>유효일</th><th>해외%</th><th>7일</th><th>플래그</th>
+            <th>K/시간</th><th>유효일</th><th>해외%</th><th>노출</th><th>플래그</th>
           </tr></thead>
           <tbody id="rosterBody"></tbody>
         </table>
       </div>
       <div class="rlegend" id="rLegend">
-        <span>🔴 <b>해외 고정</b> 해외 다이아 50%↑ — 알고리즘이 해외로 타져 있음</span>
+        <span>🔴 <b>해외 고정</b> 해외 다이아 75%↑ — 알고리즘이 외국 피드로 타져 있음</span>
+        <span>🔺 <b>넘어가는 중</b> 해외 35~75% + 급증 — 지금이 한국으로 되돌릴 타이밍</span>
         <span>🟠 <b>저효율</b> 시간당 3.5K 미만인데 방송 25h↑ — 시간만 태움</span>
         <span>🟢 <b>기회</b> 시간당 10K↑인데 방송 20h 미만 or 유효일 7일 미만 — 시간 늘리면 큼</span>
       </div>
@@ -1679,6 +1680,12 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
     var rs = JSON.parse(localStorage.getItem("offair.roster") || "null");
     if(rs && rs.hosts && typeof rs.hosts === "object") roster = rs;
   }catch(e){}
+  /* 미리보기 배포본: 백스테이지 데이터를 <script id="__seed_roster"> 로 넣어두면 초기 표시 */
+  (function(){
+    if(Object.keys(roster.hosts).length) return;
+    var seed = embeddedJSON("__seed_roster");
+    if(seed && seed.hosts) roster = seed;
+  })();
   function saveRoster(){ try{ localStorage.setItem("offair.roster", JSON.stringify(roster)); }catch(e){} }
   var rosterSort = "eff";
 
@@ -1708,69 +1715,78 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
     return Math.round(mins);
   }
   function normHandle(h){ return String(h || "").trim().replace(/^@/, "").toLowerCase(); }
-
-  /* 백스테이지 "크리에이터 데이터" 표 텍스트 파싱.
-     한 호스트 블록 = (닉네임/) @핸들 / 19자리 userID / 상태줄 / 총다이아 / 라이브시간 / 유효일수 / 새팔로워
-     userID(17~20자리 숫자) 줄을 기준으로 앞뒤를 훑는다. 순서가 조금 달라도 종류로 잡음. */
-  function bsIsNum(s){ return /^[\d.,]+\s*[KkMm]?$/.test(String(s).trim()); }
-  function bsIsHandle(s){
-    s = String(s).trim();
-    return /^@?[A-Za-z0-9._]{2,30}$/.test(s) && /[A-Za-z]/.test(s) && !bsIsNum(s);
+  function bsPct(s){ var m = String(s).replace(/,/g, "").match(/(-?[\d.]+)\s*%/); return m ? parseFloat(m[1]) / 100 : null; }
+  function bsHandleLine(s){
+    s = String(s || "").trim();
+    if(!s || s === "지난달 대비" || s === "-" || s === "더 보기") return false;
+    if(/[가-힣]/.test(s)) return false;                 // 상태줄·컬럼헤더
+    if(/^-?[\d.,]+\s*[KkMm%]?$/.test(s)) return false;   // 숫자값
+    if(/(시간|분|초)/.test(s)) return false;
+    if(/^\d+\./.test(s)) return false;                  // "1. UNKNOWN"
+    if(/^\d{17,20}$/.test(s)) return false;
+    return /^@?[A-Za-z0-9._+-]{2,40}$/.test(s);
   }
+
+  /* 백스테이지 "크리에이터 데이터" 페이지를 Ctrl+A→복사 한 텍스트 파싱.
+     19자리 userID 줄을 앵커로: (앞줄=핸들) / 상태줄 / 12개 지표.
+     각 지표 = 값 → "지난달 대비" → 이전값(또는 "-") → [증감%].
+     지표 순서: 총다이아·라이브시간·유효일·새팔로워·해외비율·멀티게스트·매치·팬클럽·선물수·선물후원자·노출·시청자 */
   function parseBackstage(text){
-    var lines = String(text || "").split(/\r?\n/).map(function(x){ return x.trim(); }).filter(Boolean);
-    var found = [];
-    for(var i = 0; i < lines.length; i++){
-      if(!/^\d{17,20}$/.test(lines[i])) continue;
-      var uid = lines[i];
-      // 핸들·닉네임: userID 바로 앞 1~3줄에서
-      var handle = "", name = "";
-      for(var b = i - 1; b >= 0 && b >= i - 3; b--){
-        var L = lines[b];
-        if(/^\d{17,20}$/.test(L)) break;
-        if(!handle && bsIsHandle(L)){ handle = L.replace(/^@/, ""); continue; }
-        if(!name && L && !/^\d/.test(L) && !bsIsNum(L)) name = L;
-      }
-      if(!handle) continue;
-      // userID 뒤 필드 훑기
-      var tail = lines.slice(i + 1, i + 12);
-      var status = "", dia = 0, mins = 0, days = 0, fol = 0, seenTime = false, seenDays = false;
-      for(var t = 0; t < tail.length; t++){
-        var s = tail[t];
-        if(/^\d{17,20}$/.test(s)) break;
-        if(bsIsHandle(s)) break; // 다음 호스트 시작
-        if(/(시간|분|초)/.test(s) && /\d/.test(s) && !seenTime){ mins = bsMins(s); seenTime = true; continue; }
-        if(/^\d[\d,]*\s*일$/.test(s)){ days = parseInt(s.replace(/[^\d]/g, ""), 10) || 0; seenDays = true; continue; }
-        if(bsIsNum(s)){
-          if(!seenTime){ if(!dia) dia = bsNum(s); }        // 라이브시간 앞 = 총다이아
-          else if(seenDays && !fol) fol = bsNum(s);         // 유효일수 뒤 = 새 팔로워
-          continue;
+    var L = String(text || "").split(/\r?\n/).map(function(x){ return x.trim(); }).filter(Boolean);
+    var out = [];
+    for(var i = 1; i < L.length; i++){
+      if(!/^\d{17,20}$/.test(L[i])) continue;
+      var handle = String(L[i - 1] || "").replace(/^@/, "");
+      if(!bsHandleLine(handle)) continue;
+      var uid = L[i], j = i + 1;
+      var status = "";
+      if(L[j] && /[가-힣]/.test(L[j]) && /(랭크|졸업|크리에이터)/.test(L[j])){ status = L[j]; j++; }
+      var m = [];               // 지표별 {v, mom}
+      for(var n = 0; n < 12 && j < L.length; n++){
+        if(/^\d{17,20}$/.test(L[j]) || bsHandleLine(L[j])) break;
+        var v = L[j++]; var mom = null;
+        if(L[j] === "지난달 대비"){
+          j++;                       // "지난달 대비"
+          var prev = L[j++];         // 이전값 (또는 "-")
+          if(prev !== "-" && L[j] != null && /%|∞/.test(L[j])) mom = bsPct(L[j++]);
         }
-        if(!status && /[가-힣]/.test(s)){ status = s; continue; }
+        m.push({v: v, mom: mom});
       }
-      found.push({handle:handle, name:name || "", uid:uid, status:status,
-        diamonds:dia, liveMinutes:mins, validDays:days, newFollowers:fol});
+      if(!m.length) continue;
+      var g = function(k){ return m[k] ? m[k].v : null; };
+      out.push({
+        handle: handle, name: "", uid: uid, status: status,
+        diamonds: bsNum(g(0)), diamondsMom: m[0] && m[0].mom,
+        liveMinutes: bsMins(g(1)), hoursMom: m[1] && m[1].mom,
+        validDays: g(2) ? (parseInt(String(g(2)).replace(/[^\d]/g, ""), 10) || 0) : 0,
+        newFollowers: bsNum(g(3)),
+        overseasRatio: g(4) != null ? bsPct(g(4)) : null, overseasMom: m[4] && m[4].mom,
+        exposure: bsNum(g(10)), viewers: bsNum(g(11))
+      });
     }
-    return found;
+    return out;
   }
 
-  /* 백스테이지 "해외 분석" 표 → 호스트별 해외 다이아 비율 · 주요 지역 */
+  /* 백스테이지 "해외 분석" > 해외 잠재력 높은 크리에이터 표 → 핸들·해외비율·주요 지역 */
   function parseOverseas(text){
-    var lines = String(text || "").split(/\r?\n/).map(function(x){ return x.trim(); }).filter(Boolean);
-    var found = [];
-    for(var i = 0; i < lines.length; i++){
-      var hm = lines[i].match(/^@?([A-Za-z0-9._]{2,30})$/);
-      if(!hm || !/[A-Za-z]/.test(hm[1])) continue;
-      var handle = hm[1];
-      var win = lines.slice(i + 1, i + 10).join(" │ ");
-      var pcts = win.match(/(\d{1,3}(?:\.\d+)?)\s*%/g);
-      if(!pcts) continue;
-      var ratio = parseFloat(pcts[0]) / 100;
-      // 지역: 국가/지역명처럼 보이는 토큰
-      var regions = (win.match(/[가-힣A-Za-z]{2,}(?=\s*[\d.]+\s*%)/g) || []).slice(0, 3);
-      found.push({handle:handle, overseasRatio:ratio, regions:regions});
+    var L = String(text || "").split(/\r?\n/).map(function(x){ return x.trim(); }).filter(Boolean);
+    var out = [];
+    for(var i = 1; i < L.length; i++){
+      if(!/^\d{17,20}$/.test(L[i])) continue;
+      var handle = String(L[i - 1] || "").replace(/^@/, "");
+      if(!bsHandleLine(handle)) continue;
+      var win = L.slice(i + 1, i + 16);
+      var ratio = null;
+      for(var w = 0; w < win.length; w++){ var p = bsPct(win[w]); if(p != null){ ratio = p; break; } }
+      var regions = [];
+      win.forEach(function(s){
+        var rm = s.match(/^\d\.\s*([A-Z][A-Za-z+]{1,10})/);
+        if(rm && regions.length < 3) regions.push(rm[1]);
+      });
+      if(ratio == null && !regions.length) continue;
+      out.push({ handle: handle, overseasRatio: ratio, regions: regions });
     }
-    return found;
+    return out;
   }
 
   function importRoster(){
@@ -1790,10 +1806,16 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
         handle:h.handle, name:h.name || prev.name || "", uid:h.uid || prev.uid || "",
         status:h.status || prev.status || "",
         diamonds:h.diamonds || prev.diamonds || 0,
+        diamondsMom:h.diamondsMom != null ? h.diamondsMom : prev.diamondsMom,
         liveMinutes:h.liveMinutes || prev.liveMinutes || 0,
+        hoursMom:h.hoursMom != null ? h.hoursMom : prev.hoursMom,
         validDays:h.validDays || prev.validDays || 0,
         newFollowers:h.newFollowers || prev.newFollowers || 0,
-        overseasRatio:prev.overseasRatio, regions:prev.regions,
+        exposure:h.exposure || prev.exposure || 0,
+        viewers:h.viewers || prev.viewers || 0,
+        overseasRatio:h.overseasRatio != null ? h.overseasRatio : prev.overseasRatio,
+        overseasMom:h.overseasMom != null ? h.overseasMom : prev.overseasMom,
+        regions:prev.regions,
         savedAt:new Date().toISOString().slice(0, 16).replace("T", " ")
       };
     });
@@ -1842,13 +1864,15 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
   }
   function flagsFor(r){
     var out = [];
-    if(r.overseasRatio != null && r.overseasRatio >= 0.5) out.push("osea");
+    if(r.overseasRatio != null && r.overseasRatio >= 0.75) out.push("osea");
+    else if(r.overseasRatio != null && r.overseasRatio >= 0.35 &&
+            (r.overseasRatio >= 0.5 || (r.overseasMom != null && r.overseasMom >= 0.4))) out.push("rising");
     if(r.eff != null && r.eff < 3500 && r.hours > 25) out.push("loeff");
     if(r.eff != null && r.eff > 10000 && (r.hours < 20 || r.validDays < 7)) out.push("chance");
     return out;
   }
-  var FLAG_ICON = {osea:"🔴", loeff:"🟠", chance:"🟢"};
-  var FLAG_TXT  = {osea:"해외 고정", loeff:"저효율", chance:"기회"};
+  var FLAG_ICON = {osea:"🔴", rising:"🔺", loeff:"🟠", chance:"🟢"};
+  var FLAG_TXT  = {osea:"해외 고정 (알고리즘이 외국)", rising:"해외로 넘어가는 중", loeff:"시간 대비 저효율", chance:"시간만 늘리면 기회"};
 
   function renderRoster(){
     var keys = Object.keys(roster.hosts);
@@ -1874,18 +1898,20 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
         uid:h.uid || (re && re.e.uid), lg:re ? re.lg : null, rank:re ? re.e.rank : null,
         avatar:(re && re.e.avatar) || null, color:(re && re.e.color) || null,
         diamonds:h.diamonds, hours:hours, eff:eff, validDays:h.validDays,
-        overseasRatio:h.overseasRatio, regions:h.regions,
+        overseasRatio:h.overseasRatio, overseasMom:h.overseasMom, regions:h.regions,
+        exposure:h.exposure || 0, viewers:h.viewers || 0,
         trend:trend7(hd), status:h.status
       };
       row.flags = flagsFor(row);
       return row;
     });
 
+    var FLAG_W = {osea:1000, rising:100, loeff:10, chance:1};
     rows.sort(function(a, b){
       if(rosterSort === "dia") return b.diamonds - a.diamonds;
       if(rosterSort === "flag"){
-        var pa = (a.flags.indexOf("osea")>=0?100:0) + (a.flags.indexOf("loeff")>=0?10:0) + (a.flags.indexOf("chance")>=0?1:0);
-        var pb = (b.flags.indexOf("osea")>=0?100:0) + (b.flags.indexOf("loeff")>=0?10:0) + (b.flags.indexOf("chance")>=0?1:0);
+        var pa = a.flags.reduce(function(s,f){ return s + (FLAG_W[f]||0); }, 0);
+        var pb = b.flags.reduce(function(s,f){ return s + (FLAG_W[f]||0); }, 0);
         if(pb !== pa) return pb - pa;
         return b.diamonds - a.diamonds;
       }
@@ -1903,25 +1929,26 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
       var lgcell = r.lg ? '<span class="rlg">' + esc(r.lg) + '</span> ' + (r.rank ? r.rank + '위' : '') : '<span class="rmiss">랭킹 밖</span>';
       var effCls = r.eff == null ? "" : (r.eff < 3500 ? " lo" : (r.eff > 10000 ? " hi" : ""));
       var effTxt = r.eff == null ? '<span class="rmiss">–</span>' : '<strong>' + fmtK(Math.round(r.eff)) + '</strong>';
-      var tr = r.trend;
-      var trendTxt = tr == null ? '<span class="rmiss">–</span>'
-        : (tr >= 0.03 ? '<span class="u">▲ ' + Math.round(tr*100) + '%</span>'
-        : (tr <= -0.03 ? '<span class="d">▼ ' + Math.round(-tr*100) + '%</span>' : '±0%'));
+      var expoTxt = r.exposure ? fmtK(r.exposure) : '<span class="rmiss">–</span>';
       var os = r.overseasRatio == null ? '<span class="rmiss">–</span>'
-        : Math.round(r.overseasRatio * 100) + '%';
+        : Math.round(r.overseasRatio * 100) + '%'
+          + (r.overseasMom != null && r.overseasMom >= 0.4 && r.overseasRatio < 0.9 ? ' ▲' : '');
       var osCls = (r.overseasRatio != null && r.overseasRatio >= 0.5) ? " hot" : "";
       var flags = r.flags.length
         ? '<span class="rflag">' + r.flags.map(function(f){ return '<span title="' + FLAG_TXT[f] + '">' + FLAG_ICON[f] + '</span>'; }).join("") + '</span>'
         : '<span class="rmiss">–</span>';
+      var nm = r.name
+        ? '<b>' + esc(r.name) + '</b><i>@' + esc(r.handle) + '</i>'
+        : '<b>@' + esc(r.handle) + '</b>';
       return '<tr data-handle="' + esc(r.handle) + '" tabindex="0" title="@' + esc(r.handle) + ' 상세">' +
-        '<td class="rname"><span class="rn">' + av + '<span class="hn"><b>' + (r.name ? esc(r.name) : "@" + esc(r.handle)) + '</b><i>@' + esc(r.handle) + '</i></span></span></td>' +
+        '<td class="rname"><span class="rn">' + av + '<span class="hn">' + nm + '</span></span></td>' +
         '<td>' + lgcell + '</td>' +
         '<td class="big">' + (r.diamonds ? fmtK(r.diamonds) : '<span class="rmiss">–</span>') + '</td>' +
         '<td>' + (r.hours ? (Math.round(r.hours*10)/10) : '<span class="rmiss">–</span>') + '</td>' +
         '<td class="eff' + effCls + '">' + effTxt + '</td>' +
         '<td>' + (r.validDays ? r.validDays + '일' : '<span class="rmiss">–</span>') + '</td>' +
         '<td class="osea' + osCls + '">' + os + '</td>' +
-        '<td class="trend">' + trendTxt + '</td>' +
+        '<td>' + expoTxt + '</td>' +
         '<td>' + flags + '</td>' +
       '</tr>';
     }).join("");
