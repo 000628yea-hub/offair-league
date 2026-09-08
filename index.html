@@ -2175,11 +2175,12 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
       if(!ours.length) return;
       var co = fieldCohort(b.lo * 0.7, b.hi * 1.3);
       var ourMonthly = med(ours.map(function(r){ return r.diamonds/6*30; }));
-      var ourD30 = med(ours.map(function(r){ var hd = hDetailCI(r.handle); return hd && hd.d30 ? hd.d30 : 0; }));
+      var d30vals = ours.map(function(r){ var hd = hDetailCI(r.handle); return hd && hd.d30 ? hd.d30 : 0; }).filter(function(x){ return x > 0; });
+      var ourD30 = d30vals.length >= Math.ceil(ours.length / 2) ? med(d30vals) : null;
       out += '<tr><td>' + b.lbl + '</td>' +
         '<td class="rname" style="font-family:inherit">' + ours.map(function(r){ return esc(r.name || r.handle).slice(0,7); }).join(", ") + '</td>' +
         '<td>' + K(ourMonthly) + '</td>' +
-        '<td class="' + (ourD30 && ourMonthly / ourD30 > 1.5 ? "lo" : "") + '">' + (ourD30 ? K(ourD30) : "?") + '</td>' +
+        '<td class="' + (ourD30 && ourMonthly / ourD30 > 1.6 ? "lo" : "") + '">' + (ourD30 ? K(ourD30) : '<span style="color:var(--muted)">미수집</span>') + '</td>' +
         '<td>' + (co ? K(co.d30) + " (" + co.n + "명)" : "—") + '</td></tr>';
     });
     out += '</tbody></table></div>' +
