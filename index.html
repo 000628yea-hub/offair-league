@@ -97,26 +97,28 @@ a{color:inherit}
 .kick{font-family:'Archivo',sans-serif;text-transform:uppercase;letter-spacing:.18em;font-weight:700;font-size:10.5px;color:var(--muted)}
 
 /* ── 마스트헤드 : 덱 표지(검정 · 스텐실 워드마크) ── */
-.hero{margin:0 -24px 0;padding:22px 24px 30px;background:#0A0A0A;color:#F2F2F2}
-.brandline{display:flex;align-items:center;gap:12px;margin-bottom:64px}
-.mark{width:30px;height:30px;flex:none;background:#F2F2F2;color:#0A0A0A;
-  display:grid;place-items:center;font-family:'Archivo',sans-serif;font-weight:900;font-size:12px;letter-spacing:-.02em}
-.brandname{font-family:'Archivo',sans-serif;font-weight:800;font-size:11px;letter-spacing:.16em;color:#F2F2F2;line-height:1.4;text-transform:uppercase}
-.brandname span{display:block;color:#7A7A7A;font-weight:500;letter-spacing:.08em;font-size:10px}
-.themebtn{margin-left:auto;background:transparent;border:1px solid #3A3A3A;color:#B5B5B5;
-  border-radius:0;padding:8px 14px;font-family:'Archivo',sans-serif;font-size:10.5px;font-weight:700;letter-spacing:.12em;
-  text-transform:uppercase;cursor:pointer;min-height:36px}
+.hero{margin:0 -24px 0;padding:26px 24px 40px;background:#0A0A0A;color:#F2F2F2}
+.brandline{display:flex;align-items:center;gap:11px;margin-bottom:clamp(56px,13vh,104px)}
+.mark{width:28px;height:28px;flex:none;background:#F2F2F2;color:#0A0A0A;
+  display:grid;place-items:center;font-family:'Archivo',sans-serif;font-weight:900;font-size:11px;letter-spacing:-.02em}
+.brandname{font-family:'Archivo',sans-serif;font-weight:700;font-size:10.5px;letter-spacing:.13em;color:#F2F2F2;line-height:1.45;text-transform:uppercase}
+.brandname span{display:block;color:#6E6E6E;font-weight:500;letter-spacing:.06em;font-size:9.5px}
+.themebtn{margin-left:auto;background:transparent;border:1px solid #333;color:#9A9A9A;
+  border-radius:0;padding:7px 13px;font-family:'Archivo',sans-serif;font-size:10px;font-weight:700;letter-spacing:.14em;
+  text-transform:uppercase;cursor:pointer;min-height:34px}
 .themebtn:hover{border-color:#F2F2F2;color:#F2F2F2}
-.eyebrow{font-family:'Archivo',sans-serif;font-size:10.5px;letter-spacing:.24em;font-weight:700;color:#7A7A7A;text-transform:uppercase;margin:0 0 20px}
-.hero h1{font-family:'Archivo',Pretendard,sans-serif;
-  font-size:clamp(48px,13.5vw,104px);line-height:1.02;margin:0;padding-bottom:.02em;
-  font-weight:900;letter-spacing:-.045em;color:#F2F2F2}
-.hero h1 .q{color:#565656;font-family:'Archivo',sans-serif}
-.lede{margin:26px 0 0;max-width:40ch;color:#B5B5B5;font-size:14px;line-height:1.7}
-.lede b{color:#F2F2F2;font-weight:600}
-.herochips{display:flex;flex-wrap:wrap;gap:0;margin-top:26px;border-top:1px solid #2A2A2A}
-.herochips span{font-family:'Archivo',Pretendard,sans-serif;font-size:10.5px;font-weight:700;letter-spacing:.04em;
-  color:#8C8C8C;padding:13px 18px 0 0}
+.eyebrow{font-family:'Archivo',sans-serif;font-size:10px;letter-spacing:.22em;font-weight:600;color:#6E6E6E;text-transform:uppercase;margin:0 0 16px}
+.hero h1{font-family:Pretendard,'Archivo',sans-serif;
+  font-size:clamp(46px,11.5vw,88px);line-height:.94;margin:0;
+  font-weight:900;letter-spacing:-.055em;color:#F2F2F2}
+.hero h1 b{display:block;font-weight:900}
+.hero h1 .dim{color:#5C5C5C}
+.hero .lede{margin:24px 0 0;max-width:42ch;color:#9A9A9A;font-size:13.5px;line-height:1.75;font-family:Pretendard,sans-serif;font-weight:400}
+.hero .lede b{color:#E8E8E8;font-weight:600}
+.herometa{margin:28px 0 0;padding-top:16px;border-top:1px solid #262626;
+  font-family:'Archivo',Pretendard,sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.02em;color:#7A7A7A}
+.herometa span::after{content:"·";margin:0 9px;color:#3A3A3A}
+.herometa span:last-child::after{content:none}
 
 /* ── INDEX (덱 2p 목차) ── */
 .index{margin:0 -24px 0;padding:44px 24px 40px;border-bottom:1.5px solid var(--rule)}
@@ -571,14 +573,11 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
   </div>
 
   <p class="eyebrow">TikTok LIVE · Creator League · 2026 3Q</p>
-  <h1><span class="q">&ldquo;</span>조각<span class="q">&rdquo;</span></h1>
-  <p class="lede">리그·다이아를 넣으면 <b>오늘 조각 몇 개</b> 받는지, <b>승급까지 며칠</b> 남았는지 바로 나옵니다.</p>
-  <div class="herochips">
-    <span>오늘 조각</span>
-    <span>승급 D-day</span>
-    <span>리그별 컷</span>
-    <span>우리 호스트</span>
-  </div>
+  <h1><b>리그 조각</b><b class="dim">계산기</b></h1>
+  <p class="lede">현재 리그와 지금까지 받은 다이아를 넣으면, <b>오늘 조각 몇 개</b> 받는지 · <b>승급까지 며칠</b> 남았는지 바로 나옵니다.</p>
+  <p class="herometa">
+    <span>오늘 조각</span><span>승급 D-day</span><span>리그별 컷</span><span>우리 호스트</span>
+  </p>
 </header>
 
 <nav class="index" aria-label="목차">
