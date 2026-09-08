@@ -389,6 +389,24 @@ td .no{color:var(--muted);font-family:Pretendard,sans-serif;font-size:12px;font-
 .rflag{display:inline-flex;gap:4px;align-items:center}
 .rflag span{font-size:14px;line-height:1}
 .rmiss{color:var(--muted);font-family:Pretendard,sans-serif;font-size:11.5px}
+/* 진단 카드 */
+#rosterDiag{margin:0 0 6px}
+#rosterDiag .dgh{font-family:'Archivo',Pretendard,sans-serif;font-size:10px;font-weight:700;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--muted);margin:0 0 4px;padding-top:14px;border-top:1.5px solid var(--rule)}
+.dgrow{padding:13px 0 13px 16px;border-bottom:1px solid var(--line);border-left:2px solid var(--line-strong)}
+.dgrow:last-child{border-bottom:0}
+.dgrow.s3{border-left-color:var(--danger)}
+.dgrow.s2{border-left-color:var(--ink)}
+.dgrow .dgn{font-weight:800;font-size:13.5px;color:var(--ink);font-family:'IBM Plex Mono',Pretendard,monospace}
+.dgrow .dgn .lgm{font-family:Pretendard,sans-serif;font-size:11px;font-weight:600;color:var(--muted);margin-left:6px}
+.dgrow .dgp{font-size:12.5px;color:var(--ink-2);margin:3px 0 0;line-height:1.55}
+.dgrow .dgp b{color:var(--ink)}
+.dgrow .dga{font-size:12px;color:var(--ink);margin:4px 0 0;line-height:1.5}
+.dgrow .dga::before{content:"→ ";color:var(--muted)}
+.dgrow .dgc{font-size:11px;color:var(--muted);margin:5px 0 0;font-variant-numeric:tabular-nums}
+.dgrow .dgc b{color:var(--ink-2);font-weight:600}
+.dgmore{font-size:11.5px;color:var(--muted);padding:11px 0 2px;cursor:pointer}
+.dgmore:hover{color:var(--ink)}
 .rlegend{display:flex;flex-direction:column;gap:6px;margin-top:14px;font-size:11.5px;color:var(--muted);line-height:1.5}
 .rlegend b{font-weight:700;color:var(--ink)}
 @media (max-width:680px){
@@ -778,6 +796,7 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
     </div>
     <p id="rosterEmpty" class="sub" style="margin:0" hidden></p>
     <div id="rosterWrap" hidden>
+      <div id="rosterDiag"></div>
       <div id="rosterScroll">
         <table class="rtab">
           <thead><tr>
@@ -1864,15 +1883,143 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
   }
   function flagsFor(r){
     var out = [];
-    if(r.overseasRatio != null && r.overseasRatio >= 0.75) out.push("osea");
-    else if(r.overseasRatio != null && r.overseasRatio >= 0.35 &&
-            (r.overseasRatio >= 0.5 || (r.overseasMom != null && r.overseasMom >= 0.4))) out.push("rising");
-    if(r.eff != null && r.eff < 3500 && r.hours > 25) out.push("loeff");
-    if(r.eff != null && r.eff > 10000 && (r.hours < 20 || r.validDays < 7)) out.push("chance");
+    if(r.overseasRatio != null && r.overseasRatio >= 0.7) out.push("osea");
+    else if(r.overseasRatio != null && r.overseasRatio >= 0.3 &&
+            (r.overseasRatio >= 0.5 || (r.overseasMom != null && r.overseasMom >= 0.25))) out.push("rising");
+    if(r.eff != null && r.eff < 4000 && r.hours > 25) out.push("loeff");
+    else if(r.eff != null && r.eff < 5000 && r.exposure >= 40000) out.push("conv");
+    if(r.eff != null && r.eff >= 8000 && (r.hours < 22 || r.validDays < 6) && !(r.overseasRatio >= 0.7)) out.push("chance");
+    if(r.validDays && r.validDays <= 3) out.push("days");
     return out;
   }
-  var FLAG_ICON = {osea:"🔴", rising:"🔺", loeff:"🟠", chance:"🟢"};
-  var FLAG_TXT  = {osea:"해외 고정 (알고리즘이 외국)", rising:"해외로 넘어가는 중", loeff:"시간 대비 저효율", chance:"시간만 늘리면 기회"};
+  var FLAG_ICON = {osea:"🔴", rising:"🔺", loeff:"🟠", conv:"🟡", chance:"🟢", days:"⚫"};
+  var FLAG_TXT  = {osea:"해외 고정 (알고리즘이 외국)", rising:"해외로 넘어가는 중", loeff:"시간 대비 저효율", conv:"노출 받는데 전환 실패", chance:"시간만 늘리면 기회", days:"방송일 부족"};
+
+  /* 수집한 전체 필드(hostDetail ~2000명, 주로 타사·개인)에서 같은 다이아 레벨 코호트의 평균 */
+  function fieldPeers(monthlyDia){
+    if(!(monthlyDia > 0)) return null;
+    var lo = monthlyDia * 0.6, hi = monthlyDia * 1.7;
+    var freq = [], perSess = [], fol = [];
+    for(var k in hostDetail){
+      var d = hostDetail[k];
+      if(!d || !(d.d30 > 0) || d.d30 < lo || d.d30 > hi) continue;
+      var days = (d.days || []).filter(function(x){ return x && x.min > 0; });
+      if(!days.length) continue;
+      freq.push(days.length / 14);                                   // 방송 빈도 (14일 중)
+      perSess.push(days.reduce(function(s,x){ return s + x.min; }, 0) / days.length / 60); // 회당 h
+      fol.push(d.followers || 0);
+    }
+    if(freq.length < 4) return null;
+    var med = function(a){ a = a.slice().sort(function(x,y){ return x - y; }); return a[Math.floor(a.length/2)]; };
+    return { n: freq.length, freq: med(freq), perSess: med(perSess), followers: med(fol) };
+  }
+
+  /* 호스트 한 명의 '정확히 뭐가 문제인지' + 해야 할 것 + 타사 비교 */
+  function diagnose(r){
+    var d = Math.round(r.diamonds), h = r.hours, e = r.eff, days = r.validDays;
+    var os = r.overseasRatio, osM = r.overseasMom, dM = r.diamondsMom;
+    var monthly = d / 6 * 30;
+    var reg = (r.regions && r.regions.length) ? r.regions.slice(0,2).join("·") : "외국";
+    var K = function(n){ return fmtK(Math.round(n)); };
+    var out = null;
+
+    // 리그 유지컷 밖 (강등권)
+    var lgCount = (r.lg && cuts[r.lg] && cuts[r.lg].count) || 99;
+    var keep = r.lg ? (rulesFor(r.lg).keep || null) : null;
+    var demote = (r.lg && r.rank && keep && r.rank > Math.ceil(keep * lgCount));
+
+    if(demote && !(os != null && os >= 0.7)){
+      out = { sev:3, kind:"demote",
+        problem: r.lg + " <b>" + r.rank + "위</b> / " + lgCount + "명 = 유지컷(" + Math.ceil(keep*lgCount) + "위) 밖. <b>지금 페이스면 강등</b>." +
+          (r.diamonds >= 300000 ? " 에이전시 최상위 화력인데 순위가 안 받쳐줍니다." : ""),
+        action: (e != null && e >= 12000)
+          ? "효율(" + K(e) + "/h)은 이미 이 리그 최상위급. 문제는 방송량 — 주 6일·회당 4.5h로만 올리면 순위 방어. 이번 시즌 최우선."
+          : "방송일수·회당 시간 둘 다 올려야. 이 리그에서 버티려면 주 25h+ 필요." };
+    } else if(os != null && os >= 0.7){
+      out = { sev:3, kind:"osea",
+        problem: "알고리즘이 <b>" + reg + "</b> 피드로 굳었습니다. 방송·시청·선물이 해외 <b>" + Math.round(os*100) + "%</b> — 한국 시청자는 거의 안 붙습니다.",
+        action: (osM != null && osM <= 0.05)
+          ? "한국 복귀는 사실상 불가. 해외 전문으로 인정하고 " + reg + " 피크 시간대·같은 지역 매치에 최적화하는 게 현실적."
+          : "방송 시간대를 KST 저녁으로 강제 이동 + 한국 콘셉트로 30일 리셋. 안 하면 영구 고정." };
+    } else if(os != null && os >= 0.35 && (os >= 0.5 || (osM != null && osM >= 0.25))){
+      out = { sev:3, kind:"rising",
+        problem: "해외 <b>" + Math.round(os*100) + "%</b>로 넘어가는 중" + (osM != null && osM >= 0.15 ? " (전월 대비 +" + Math.round(osM*100) + "%p)" : "") + ". 아직 반반이라 되돌릴 수 있습니다.",
+        action: "이번 달 안에 KST 20–24시 고정 + 한국 시청자 매치. 다음 달 되면 해외로 고정됩니다." };
+    } else if(days && days <= 3 && d > 20000){
+      out = { sev:3, kind:"days",
+        problem: "이번 기간 <b>" + days + "일</b>만 방송(주 6일 기준 미달). 켠 날 성적은 나쁘지 않은데 빈도가 안 나옵니다.",
+        action: "회당 시간·콘텐츠 이전에 '매일 켜기'부터. 방송 빈도가 리그의 1순위 변수." };
+    } else if(e != null && e < 5500 && r.exposure >= 90000){
+      out = { sev:2, kind:"conv",
+        problem: "노출 <b>" + K(r.exposure) + "</b>(에이전시 최상위권)인데 시간당 <b>" + K(e) + "</b>" + (dM != null && dM <= -0.4 ? " · 다이아는 전월 대비 " + Math.round(dM*100) + "%" : "") + ". 알고리즘이 시청자를 대량으로 보내주는데 못 잡고 흘려보냅니다.",
+        action: "들어온 시청자 3초 안에 붙잡는 오프닝 + 첫 10분 몰입 구간 설계. 노출은 이미 넘칩니다 — 전환만 붙으면 급등." };
+    } else if(e != null && e < 4000 && h > 25){
+      out = { sev:2, kind:"loeff",
+        problem: "방송 <b>" + h.toFixed(1) + "h</b>인데 시간당 <b>" + K(e) + "</b>. 시간을 태우는 만큼 산출이 안 나옵니다 — 방송량이 아니라 밀도 문제.",
+        action: (dM != null && dM >= 1)
+          ? "다만 전월 대비 +" + Math.round(dM*100) + "% 성장 중이라 1~2주 더 관찰. 그 뒤에도 효율 안 오르면 콘텐츠 재점검."
+          : "방송 시간 늘리지 말 것. 오프닝 30초 + 소액선물→리액션→유도 루프부터 코칭. 회당 목표 " + K(e*1.6) + "/h." };
+    } else if(e != null && e >= 8000 && h < 23 && days >= 4){
+      var tgt = 27, proj = e * tgt;
+      out = { sev:2, kind:"chance",
+        problem: "효율 <b>" + K(e) + "/h</b>로 이미 검증됐는데 방송 <b>" + h.toFixed(1) + "h·" + days + "일</b>뿐. 시간이 부족한 것뿐입니다.",
+        action: "주 6일·회당 4~4.5h(" + tgt + "h)로만 늘리면 이번 기간 <b>" + K(proj) + "</b> 예상 → 상위 리그 승급 사정권. 콘텐츠 건드릴 것 없음." };
+    } else if(dM != null && dM <= -0.4){
+      out = { sev:2, kind:"drop",
+        problem: "다이아 전월 대비 <b>" + Math.round(dM*100) + "%</b> 하락" + (r.hours && r.hours < 20 ? " (방송도 " + h.toFixed(1) + "h로 축소)" : "") + ".",
+        action: "슬럼프 — 번아웃·외부요인 면담 먼저. 방송 압박은 그다음." };
+    } else {
+      out = { sev:1, kind:"ok",
+        problem: (dM != null && dM > 0.3)
+          ? "성장 중 (전월 대비 +" + Math.round(dM*100) + "%). 특이 문제 없음 — 페이스 유지."
+          : "지표상 특이사항 없음. 페이스 유지.",
+        action: "" };
+    }
+
+    // 타사 동급 비교
+    var p = fieldPeers(monthly);
+    if(p){
+      var ourFreq = days / 6, ourSess = days ? h / days : 0;
+      var gap = [];
+      if(p.freq - ourFreq > 0.12) gap.push("방송빈도 " + Math.round(ourFreq*100) + "% vs 동급 " + Math.round(p.freq*100) + "%");
+      if(p.perSess - ourSess > 0.6) gap.push("회당 " + ourSess.toFixed(1) + "h vs 동급 " + p.perSess.toFixed(1) + "h");
+      if(p.followers > (r.followers || 0) * 1.8 && p.followers > 30000) gap.push("팔로워 우리 " + K(r.followers || 0) + " vs 동급 " + K(p.followers));
+      if(gap.length) out.compare = "월 " + K(monthly) + "급 타사 " + p.n + "명 대비 — " + gap.join(" · ");
+    }
+    return out;
+  }
+
+  function renderRosterDiag(rows){
+    var el = $("rosterDiag");
+    if(!el) return;
+    var all = rows.map(function(r){ return { r:r, dg: diagnose(r) }; }).filter(function(x){ return x.dg; });
+    var probs = all.filter(function(x){ return x.dg.sev >= 2 && x.dg.kind !== "chance"; })
+      .sort(function(a,b){ return (b.dg.sev - a.dg.sev) || (b.r.diamonds - a.r.diamonds); });
+    var chances = all.filter(function(x){ return x.dg.kind === "chance"; })
+      .sort(function(a,b){ return b.r.eff - a.r.eff; });
+    if(!probs.length && !chances.length){ el.innerHTML = ""; return; }
+
+    function card(x){
+      var r = x.r, dg = x.dg;
+      var lgm = (r.lg && !/유지컷/.test(dg.problem)) ? '<span class="lgm">' + esc(r.lg) + (r.rank ? ' ' + r.rank + '위' : '') + '</span>' : '';
+      return '<div class="dgrow s' + dg.sev + '" data-handle="' + esc(r.handle) + '" tabindex="0">' +
+        '<div class="dgn">' + esc(r.name || ("@" + r.handle)) + lgm + '</div>' +
+        '<p class="dgp">' + dg.problem + '</p>' +
+        (dg.action ? '<p class="dga">' + dg.action + '</p>' : '') +
+        (dg.compare ? '<p class="dgc">' + esc(dg.compare) + '</p>' : '') +
+      '</div>';
+    }
+    var html = "";
+    if(probs.length){
+      var pShow = probs.slice(0, 10);
+      html += '<p class="dgh">우선 개입 — ' + probs.length + '명</p>' + pShow.map(card).join("");
+      if(probs.length > pShow.length) html += '<div class="dgmore">표에서 나머지 ' + (probs.length - pShow.length) + '명</div>';
+    }
+    if(chances.length){
+      html += '<p class="dgh" style="border-top-color:var(--line)">끌어올릴 수 있음 — 시간만 늘리면 (' + chances.length + '명)</p>' + chances.slice(0, 6).map(card).join("");
+    }
+    el.innerHTML = html;
+  }
 
   function renderRoster(){
     var keys = Object.keys(roster.hosts);
@@ -1897,16 +2044,17 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
         key:k, handle:(re && re.e.handle) || h.handle, name:h.name || (hd && hd.name) || (re && re.e.name) || "",
         uid:h.uid || (re && re.e.uid), lg:re ? re.lg : null, rank:re ? re.e.rank : null,
         avatar:(re && re.e.avatar) || null, color:(re && re.e.color) || null,
-        diamonds:h.diamonds, hours:hours, eff:eff, validDays:h.validDays,
+        diamonds:h.diamonds, diamondsMom:h.diamondsMom, hours:hours, eff:eff, validDays:h.validDays,
         overseasRatio:h.overseasRatio, overseasMom:h.overseasMom, regions:h.regions,
         exposure:h.exposure || 0, viewers:h.viewers || 0,
+        followers:(hd && hd.followers) || (re && re.e.followers) || 0,
         trend:trend7(hd), status:h.status
       };
       row.flags = flagsFor(row);
       return row;
     });
 
-    var FLAG_W = {osea:1000, rising:100, loeff:10, chance:1};
+    var FLAG_W = {osea:1000, rising:500, days:300, loeff:100, conv:60, chance:1};
     rows.sort(function(a, b){
       if(rosterSort === "dia") return b.diamonds - a.diamonds;
       if(rosterSort === "flag"){
@@ -1919,6 +2067,8 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
       var ea = a.eff == null ? Infinity : a.eff, eb = b.eff == null ? Infinity : b.eff;
       return ea - eb;
     });
+
+    renderRosterDiag(rows);
 
     var html = rows.map(function(r){
       var col = /^#[0-9a-fA-F]{3,8}$/.test(r.color || "") ? esc(r.color) : "var(--surface-2)";
@@ -1984,6 +2134,11 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
     if(ev.key !== "Enter" && ev.key !== " ") return;
     var tr = ev.target.closest("tr[data-handle]");
     if(tr){ ev.preventDefault(); openHost(tr.getAttribute("data-handle")); }
+  });
+  $("rosterDiag").addEventListener("click", function(ev){
+    if(ev.target.closest(".dgmore")){ try{ $("rosterScroll").scrollIntoView({behavior:"smooth", block:"start"}); }catch(e){} return; }
+    var row = ev.target.closest(".dgrow[data-handle]");
+    if(row) openHost(row.getAttribute("data-handle"));
   });
 
   /* ── 컷 데이터 입력 ── */
