@@ -664,65 +664,6 @@ footer b{color:var(--ink-2);font-weight:600}
   </div>
 </div>
 
-<!-- 컷 숫자 한 번에 넣기 (선택 · 평소엔 접혀 있음) -->
-<section class="block">
-  <details id="cutData" class="fold">
-  <summary><h2>컷 숫자 한 번에 넣기 <span style="color:var(--muted);font-weight:400;font-size:13px">(선택)</span></h2> <span class="savenote" id="cutDataSum"></span></summary>
-  <div class="panel">
-  <p class="sub" style="margin:0 0 16px">컷은 결과 화면에서 한 칸씩 바로 고칠 수 있습니다. 여기는 <b>틱두 컷 페이지를 통째로 붙여넣어 18개 리그를 한 번에</b> 채우는 용도예요. 저장 값은 이 브라우저에만 남습니다.</p>
-    <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:14px">
-      <div style="font-weight:700;font-size:15px" id="cutTitle">C3 리그</div>
-      <div class="savenote" id="savenote">아직 저장된 컷이 없습니다.</div>
-    </div>
-
-    <div class="seg seg3" role="group" aria-label="입력 방식">
-      <button type="button" id="src-tikdo" aria-pressed="true">붙여넣기</button>
-      <button type="button" id="src-paste" aria-pressed="false">랭킹으로</button>
-      <button type="button" id="src-manual" aria-pressed="false">직접 입력</button>
-    </div>
-
-    <div id="tikdoBox">
-      <div class="field">
-        <label for="tikdotext">리그 컷 페이지 붙여넣기</label>
-        <textarea id="tikdotext" placeholder="tikdo.kr/league/cutoffs 접속(로그인) → 전체 선택(Ctrl+A) → 복사 → 여기 붙여넣기"></textarea>
-        <span class="hint"><span class="num">tikdo.kr/league/cutoffs</span> 페이지 내용을 그대로 붙여넣으세요.</span>
-      </div>
-      <div class="cutbar">
-        <button class="btn" type="button" id="tikdoBtn">불러오기</button>
-        <span class="savenote" id="tikdonote"></span>
-      </div>
-      <div class="preview" id="tikdopreview"></div>
-    </div>
-
-    <div id="pasteBox" hidden>
-      <div class="field">
-        <label for="ranktext">리그 랭킹 붙여넣기</label>
-        <textarea id="ranktext" placeholder="1위 호스트A 2,778,793&#10;2위 호스트B 1,204,110&#10;…"></textarea>
-        <span class="hint">순위 1~99위 전부 붙여넣으세요. 100 이상 숫자만 다이아로 읽습니다.</span>
-      </div>
-      <div class="cutbar">
-        <button class="btn" type="button" id="parseBtn">컷 계산하기</button>
-        <span class="savenote" id="parsenote">읽어들인 다이아: 0개</span>
-      </div>
-      <div class="preview" id="preview"></div>
-    </div>
-
-    <div id="manualBox" hidden>
-      <div class="cutcard">
-        <div class="field"><label for="c3">+3 조각 컷</label><input type="number" id="c3" min="0" step="100" placeholder="A·B 리그만"></div>
-        <div class="field"><label for="c2">+2 조각 컷</label><input type="number" id="c2" min="0" step="100" placeholder="예: 47670"></div>
-        <div class="field"><label for="c1">+1 조각 컷</label><input type="number" id="c1" min="0" step="100" placeholder="예: 29873"></div>
-        <div class="field"><label for="c0">유지컷</label><input type="number" id="c0" min="0" step="100" placeholder="예: 11821"></div>
-      </div>
-      <div class="cutbar">
-        <button class="btn" type="button" id="saveCut">이 리그 컷 저장</button>
-        <button class="btn ghost" type="button" id="clearCut">지우기</button>
-      </div>
-    </div>
-  </div>
-  </details>
-</section>
-
 <!-- 리그별 컷 표 (매니저용 · 평소엔 접힘) -->
 <section class="block">
   <details class="fold">
@@ -735,6 +676,20 @@ footer b{color:var(--ink-2);font-weight:600}
       <tbody></tbody>
     </table>
   </div>
+
+  <details class="fold subtle" id="cutData" style="margin-top:18px">
+    <summary><h4>틱두 컷 한 번에 넣기 <span id="cutDataSum" style="text-transform:none;letter-spacing:0;font-weight:400"></span></h4></summary>
+    <div class="field" style="margin-top:12px">
+      <label for="tikdotext">틱두 컷 페이지 붙여넣기</label>
+      <textarea id="tikdotext" placeholder="tikdo.kr/league/cutoffs 접속(로그인) → 전체 선택(Ctrl+A) → 복사 → 여기 붙여넣기"></textarea>
+      <span class="hint">18개 리그 컷을 한 번에 채웁니다. 개별 컷은 &lsquo;오늘 결과&rsquo;에서 바로 고칠 수 있어요.</span>
+    </div>
+    <div class="cutbar">
+      <button class="btn" type="button" id="tikdoBtn">불러오기</button>
+      <span class="savenote" id="tikdonote"></span>
+    </div>
+    <div class="preview" id="tikdopreview"></div>
+  </details>
   </div>
   </details>
 </section>
@@ -1977,58 +1932,19 @@ footer b{color:var(--ink-2);font-weight:600}
 
   /* ── 컷 데이터 입력 ── */
   function loadCutCard(){
-    var e = cuts[state.league] || {};
-    $("cutTitle").textContent = state.league + " 리그";
-    $("c3").value = scoreOf(e,3) != null ? scoreOf(e,3) : "";
-    $("c2").value = scoreOf(e,2) != null ? scoreOf(e,2) : "";
-    $("c1").value = scoreOf(e,1) != null ? scoreOf(e,1) : "";
-    $("c0").value = scoreOf(e,0) != null ? scoreOf(e,0) : "";
-    var r = rulesFor(state.league);
-    $("c3").disabled = !r.p3;
-    $("c3").placeholder = r.p3 ? "예: 281942" : "A·B 리그만 해당";
-    $("c0").disabled = !r.keep;
-    $("c0").placeholder = !r.keep ? "차감 없는 리그"
-      : keepEstimated(state.league) ? "LIVE센터 유지컷" : "예: 11821";
-    $("savenote").textContent = e.savedAt
-      ? (srcName(e) ? srcName(e) + " 조각컷 · " : "") + e.savedAt + " · 인원 " + (e.count || "?") + "명"
-        + (keepEstimated(state.league) ? " · 유지컷 추정치" : "")
-      : "저장된 컷 없음";
-    $("cutHint").textContent = hasCuts(state.league)
-      ? "저장된 컷과 비교합니다."
-      : "컷이 없습니다. 아래에서 먼저 넣어주세요.";
-    $("preview").className = "preview";
-
-    /* 접힌 헤더 요약 */
-    var lgs = 0;
-    for(var k in cuts){ if(cuts[k] && cuts[k].rows && hasCuts(k)) lgs++; }
-    $("cutDataSum").textContent = lgs
-      ? (e.savedAt ? e.savedAt + " · " : "") + lgs + "개 리그 저장됨"
-      : "저장 안 됨 — 눌러서 붙여넣기";
-  }
-
-  /* 붙여넣은 랭킹에서 다이아만 뽑기 */
-  function parseScores(text){
-    var out = [];
-    var re = /([0-9][0-9,\.]*)([KkMm])?/g, m;
-    while((m = re.exec(text)) !== null){
-      var raw = m[1].replace(/,/g, "");
-      var v = parseFloat(raw);
-      if(!isFinite(v)) continue;
-      var suf = m[2];
-      if(suf === "K" || suf === "k") v *= 1000;
-      else if(suf === "M" || suf === "m") v *= 1000000;
-      v = Math.round(v);
-      if(v >= 100) out.push(v);   /* 순위·인원 같은 작은 수는 버림 */
+    var hint = $("cutHint");
+    if(hint) hint.textContent = hasCuts(state.league)
+      ? "컷을 넘겼는지, 조각까지 얼마나 남았는지 오른쪽에 바로 나옵니다."
+      : "이 리그 컷이 아직 없습니다. 오른쪽 사다리에 직접 넣어보세요.";
+    var sum = $("cutDataSum");
+    if(sum){
+      var lgs = 0;
+      for(var k in cuts){ if(cuts[k] && cuts[k].rows && hasCuts(k)) lgs++; }
+      sum.textContent = lgs ? "· " + lgs + "개 리그 저장됨" : "";
     }
-    return out.sort(function(a,b){ return b - a; });
   }
 
-  function buildRows(scores, count, lg){
-    return specFor(lg).map(function(sp){
-      var rank = cutRank(sp.pct, count);
-      return {pct:sp.pct, fragments:sp.fragments, rank:rank, score: scores[rank-1] != null ? scores[rank-1] : null};
-    });
-  }
+
   function prevOf(lg){
     var e = cuts[lg];
     if(!e || !e.rows) return null;
@@ -2041,68 +1957,6 @@ footer b{color:var(--ink-2);font-weight:600}
     return (t.getMonth()+1) + "월 " + t.getDate() + "일 " + String(t.getHours()).padStart(2,"0") + ":" + String(t.getMinutes()).padStart(2,"0");
   }
 
-  $("parseBtn").addEventListener("click", function(){
-    var scores = parseScores($("ranktext").value);
-    $("parsenote").textContent = "읽어들인 다이아: " + scores.length + "개";
-    if(scores.length < 2){
-      $("preview").className = "preview on";
-      $("preview").innerHTML = '<div class="prow"><span>숫자를 찾지 못했습니다. 다이아 값이 포함된 랭킹을 붙여넣어 주세요.</span></div>';
-      return;
-    }
-    var count = scores.length;
-    var rows = buildRows(scores, count, state.league);
-    var median = scores[Math.floor((count-1)/2)];
-    var keepRanking = (cuts[state.league] || {}).ranking || null;
-    cuts[state.league] = {
-      league: state.league, tier: state.league[0], count: count, top: scores[0], median: median,
-      ranking: keepRanking,
-      rows: rows, prev: prevOf(state.league), savedAt: stamp(), source: "paste"
-    };
-    saveCuts();
-
-    var html = '<div class="prow"><span>인원</span><b>' + count + '명</b></div>' +
-               '<div class="prow"><span>1위</span><b>' + fmt(scores[0]) + '</b></div>' +
-               '<div class="prow"><span>중앙값</span><b>' + fmt(median) + '</b></div>';
-    rows.forEach(function(row){
-      html += '<div class="prow"><span>' + (row.fragments ? "+" + row.fragments + " 조각" : "유지") +
-              ' · 상위 ' + Math.round(row.pct*100) + '% (' + row.rank + '위)</span><b>' +
-              (row.score != null ? fmt(row.score) : "데이터 부족") + '</b></div>';
-    });
-    $("preview").className = "preview on";
-    $("preview").innerHTML = html;
-
-    loadCutCard(); renderTable(); renderRanking();
-    if(!$("cutFields").hidden || hasCuts(state.league)) render();
-    render();
-  });
-
-  $("saveCut").addEventListener("click", function(){
-    function numOrNull(el){
-      if(el.disabled) return null;
-      var v = String(el.value).trim();
-      if(v === "") return null;
-      var n = Number(v);
-      return isFinite(n) ? n : null;
-    }
-    var vals = {3:numOrNull($("c3")), 2:numOrNull($("c2")), 1:numOrNull($("c1")), 0:numOrNull($("c0"))};
-    var n = Math.max(2, state.total);
-    var rows = specFor(state.league).map(function(sp){
-      return {pct:sp.pct, fragments:sp.fragments, rank:cutRank(sp.pct, n), score: vals[sp.fragments]};
-    });
-    var old = cuts[state.league] || {};
-    cuts[state.league] = {
-      league: state.league, tier: state.league[0], count: n,
-      top: old.top != null ? old.top : null, median: old.median != null ? old.median : null,
-      ranking: old.ranking || null,
-      rows: rows, prev: prevOf(state.league), savedAt: stamp(), source: "manual"
-    };
-    saveCuts(); loadCutCard(); renderTable(); renderRanking(); render();
-  });
-
-  $("clearCut").addEventListener("click", function(){
-    delete cuts[state.league]; saveCuts(); loadCutCard(); renderTable(); renderRanking(); render();
-  });
-
   /* 결과 화면 컷 사다리에서 숫자 직접 수정 */
   $("cutline").addEventListener("change", function(ev){
     var inp = ev.target;
@@ -2112,18 +1966,6 @@ footer b{color:var(--ink-2);font-weight:600}
     writeCut(state.league, frag, raw);
     loadCutCard(); renderTable(); renderRanking(); render();
   });
-
-  function setSource(s){
-    $("src-tikdo").setAttribute("aria-pressed", s==="tikdo" ? "true":"false");
-    $("src-paste").setAttribute("aria-pressed", s==="paste" ? "true":"false");
-    $("src-manual").setAttribute("aria-pressed", s==="manual" ? "true":"false");
-    $("tikdoBox").hidden = s !== "tikdo";
-    $("pasteBox").hidden = s !== "paste";
-    $("manualBox").hidden = s !== "manual";
-  }
-  $("src-tikdo").addEventListener("click", function(){ setSource("tikdo"); });
-  $("src-paste").addEventListener("click", function(){ setSource("paste"); });
-  $("src-manual").addEventListener("click", function(){ setSource("manual"); });
 
   /* ── 틱두 조각컷 페이지 전체 붙여넣기 ── */
   function tkNum(s){
@@ -2297,10 +2139,6 @@ footer b{color:var(--ink-2);font-weight:600}
   window.addEventListener("resize", syncBar);
   syncBar();
 
-  /* 저장된 컷이 있으면 다이아 모드로 시작 */
-  if(hasCuts(state.league) && !localStorage.getItem("offair.league.state")) state.mode = "cut";
-
-  setSource("tikdo");
   buildRankTabs();
   syncInputs();
   loadCutCard();
