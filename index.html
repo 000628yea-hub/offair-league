@@ -795,8 +795,17 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
       <div id="rosterOverview"></div>
       <div id="rosterDiag"></div>
 
+      <div class="dgsec" id="gradSec" hidden>
+        <p class="dgh" style="border-top:1.5px solid var(--rule)">졸업 트래커 <span id="gradSum" style="text-transform:none;letter-spacing:0;font-weight:400"></span></p>
+        <div id="gradBody"></div>
+      </div>
+      <div class="dgsec" id="newcSec" hidden>
+        <p class="dgh" style="border-top:1.5px solid var(--rule)">신규 크리에이터 <span id="newcSum" style="text-transform:none;letter-spacing:0;font-weight:400"></span></p>
+        <div id="newcBody"></div>
+      </div>
+
       <div class="dgsec" id="lgGap">
-        <p class="dgh" style="border-top:1.5px solid var(--rule)">A리그 상위권과 뭐가 다른가</p>
+        <p class="dgh" style="border-top:1.5px solid var(--rule)">구간별 — A리그·필드와 뭐가 다른가</p>
         <div id="lgGapBody"></div>
       </div>
       <div class="dgsec">
@@ -2036,6 +2045,13 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
         action: "" };
     }
 
+    // 졸업 상태 태그
+    if(r.grad){
+      var goal = r.grad.goal || 200000;
+      if(r.grad.met) out.problem += ' <span style="color:var(--muted)">· 이번 달 졸업 달성 ✓</span>';
+      else if(r.grad.progress >= goal * 0.55) out.problem += ' <span style="color:var(--muted)">· 졸업 임박 ' + Math.round(r.grad.progress/goal*100) + '% (' + fmtK(goal - r.grad.progress) + ' 부족)</span>';
+    }
+
     var p = fieldPeers(monthly);
     if(p && d > 30000){
       var ourFreq = days / 6, ourSess = days ? h / days : 0;
@@ -2117,44 +2133,128 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
     el.innerHTML = html;
   }
 
-  /* A리그 상위권 vs 우리 — cuts.json A1 랭킹 + hostDetail 로 라이브 계산 */
-  function renderLeagueGap(rows){
+  var med = function(a){ a = a.filter(function(x){ return x > 0; }).sort(function(x,y){ return x - y; }); return a.length ? a[Math.floor(a.length/2)] : 0; };
+  /* 필드(수집한 타사·개인 hostDetail)에서 월다이아 밴드 코호트의 프로필 */
+  function fieldCohort(loD, hiD){
+    var d30 = [], days = [], hrs = [], fol = [];
+    for(var k in hostDetail){
+      var d = hostDetail[k];
+      if(!d || !(d.d30 >= loD) || d.d30 > hiD) continue;
+      var dd = (d.days || []).filter(function(x){ return x.min > 0; });
+      if(!dd.length) continue;
+      d30.push(d.d30); days.push(dd.length);
+      hrs.push(dd.reduce(function(s,x){ return s + x.min; }, 0) / dd.length / 60);
+      fol.push(d.followers || 0);
+    }
+    if(d30.length < 4) return null;
+    return { n:d30.length, d30:med(d30), days:med(days), sess:med(hrs), fol:med(fol) };
+  }
+
+  /* 구간별 — 우리 호스트를 월 다이아 밴드로 나눠 필드·A1 상위와 비교 */
+  function renderBrackets(rows){
     var body = $("lgGapBody"); if(!body) return;
-    var a1 = (cuts.A1 && cuts.A1.ranking || []).slice(0, 10);
-    var med = function(a){ a = a.filter(function(x){ return x > 0; }).sort(function(x,y){ return x - y; }); return a.length ? a[Math.floor(a.length/2)] : 0; };
-    var d30s = [], daysA = [];
-    a1.forEach(function(r){
-      var hd = hDetailCI(r.handle); if(!hd) return;
-      if(hd.d30) d30s.push(hd.d30);
-      var dd = (hd.days || []).filter(function(x){ return x.min > 0; });
-      if(dd.length) daysA.push(dd.length);
-    });
-    var a1d30 = med(d30s), a1days = med(daysA);
-    var ours = rows.filter(function(r){ return r.diamonds > 100000; }).sort(function(a,b){ return b.diamonds - a.diamonds; });
-    var top = ours[0];
-    var topHd = top ? hDetailCI(top.handle) : null;
-    if(!a1d30 || !top){ $("lgGap").hidden = true; return; }
-    $("lgGap").hidden = false;
     var K = fmtK;
-    var mult = (topHd && topHd.d30) ? Math.round(a1d30 / topHd.d30) : null;
-    var ourFreq = top.validDays ? Math.round(top.validDays / 6 * 100) : null;
-    var ourSess = top.validDays ? (top.hours / top.validDays).toFixed(1) : "?";
-    body.innerHTML =
-      '<div class="scroll" style="border:0"><table style="min-width:0"><thead><tr><th>구분</th><th>월 누적 다이아</th><th>방송 빈도</th><th>회당</th></tr></thead><tbody>' +
-        '<tr><td>A1 상위 8 중앙값</td><td class="hi">' + K(a1d30) + '</td><td class="hi">' + Math.round(a1days / 14 * 100) + '% (거의 매일)</td><td>~3.5h</td></tr>' +
-        '<tr><td>우리 ' + esc((top.name || top.handle)).slice(0,12) + (top.lg ? ' · ' + top.lg + ' ' + top.rank + '위' : '') + '</td>' +
-          '<td class="lo">' + (topHd && topHd.d30 ? K(topHd.d30) : "?") + '</td>' +
-          '<td class="lo">' + (ourFreq != null ? ourFreq + '%' : "?") + '</td>' +
-          '<td>' + ourSess + 'h</td></tr>' +
-      '</tbody></table></div>' +
-      '<p class="none" style="margin:0 0 12px"><b>회당 시간은 비슷한데(3.5h vs ' + ourSess + 'h)</b>, A1 상위는 거의 매일 켜서 월 누적이 ' +
-      (mult ? '<b>' + mult + '배</b>' : "몇 배") + ' 앞선다. 이게 곧 리그 순위 격차.</p>' +
+    // A1 상위 8 프로필
+    var a1 = (cuts.A1 && cuts.A1.ranking || []).slice(0, 8);
+    var a1d = [], a1days = [];
+    a1.forEach(function(r){ var hd = hDetailCI(r.handle); if(hd){ if(hd.d30) a1d.push(hd.d30); var dd = (hd.days||[]).filter(function(x){return x.min>0;}); if(dd.length) a1days.push(dd.length); } });
+    var a1med = med(a1d), a1daymed = med(a1days);
+
+    var BANDS = [
+      { lo: 2000000, hi: 1e12, lbl: "월 2M+" },
+      { lo: 900000, hi: 2000000, lbl: "월 900K–2M" },
+      { lo: 400000, hi: 900000, lbl: "월 400K–900K" },
+      { lo: 150000, hi: 400000, lbl: "월 150K–400K" }
+    ];
+    var out = '<div class="scroll" style="border:0"><table style="min-width:540px"><thead><tr>' +
+      '<th>구간</th><th>호스트</th><th>이번 주 페이스<br>(월 환산)</th><th>실제 지난 30일<br>(d30)</th><th>필드 동급 d30</th></tr></thead><tbody>';
+    if(a1med) out += '<tr><td><b>A1 상위 8</b></td><td class="rname" style="font-family:inherit;color:var(--muted)">기준선</td><td>—</td><td class="hi">' + K(a1med) + '</td><td>매일 방송</td></tr>';
+    BANDS.forEach(function(b){
+      var ours = rows.filter(function(r){ var m = r.diamonds/6*30; return m >= b.lo && m < b.hi && r.diamonds > 20000; })
+        .sort(function(x,y){ return y.diamonds - x.diamonds; });
+      if(!ours.length) return;
+      var co = fieldCohort(b.lo * 0.7, b.hi * 1.3);
+      var ourMonthly = med(ours.map(function(r){ return r.diamonds/6*30; }));
+      var ourD30 = med(ours.map(function(r){ var hd = hDetailCI(r.handle); return hd && hd.d30 ? hd.d30 : 0; }));
+      out += '<tr><td>' + b.lbl + '</td>' +
+        '<td class="rname" style="font-family:inherit">' + ours.map(function(r){ return esc(r.name || r.handle).slice(0,7); }).join(", ") + '</td>' +
+        '<td>' + K(ourMonthly) + '</td>' +
+        '<td class="' + (ourD30 && ourMonthly / ourD30 > 1.5 ? "lo" : "") + '">' + (ourD30 ? K(ourD30) : "?") + '</td>' +
+        '<td>' + (co ? K(co.d30) + " (" + co.n + "명)" : "—") + '</td></tr>';
+    });
+    out += '</tbody></table></div>' +
+      '<p class="none" style="margin:0 0 4px"><b>핵심</b> — 우리 호스트는 <b>이번 주 페이스(월 환산)는 필드 동급보다 앞선다</b>. 근데 <b>실제 지난 30일(d30)이 훨씬 낮다</b> = 이 페이스를 한 달 유지한 적이 없다는 뜻. A1 상위는 d30 자체가 우리 페이스만큼 나온다(매일 켜서). <b>격차 = 이번 주만 잘하고 마는 것.</b></p>' +
       '<ul class="faq" style="grid-template-columns:1fr;border-top:0">' +
-        '<li class="fcard" style="border-right:0;padding-left:0"><h4>① 성실성이 1순위</h4><p>하루 폭발력(효율)은 이미 A1급인데 <b>매일 안 켜서</b> 누적을 못 만든다.</p></li>' +
-        '<li class="fcard" style="border-right:0;padding-left:0"><h4>② 절대 방송량 주 10h 부족</h4><p>A1 = 하루 3–4h × 매일 = 주 25–30h. 우리 끌어올릴 그룹 = 주 16–19h.</p></li>' +
-        '<li class="fcard" style="border-right:0;padding-left:0"><h4>③ 애초에 해외로 안 샌다</h4><p>A1 상위는 전원 한국 팬덤·한국 시간대. 우리는 상위권에도 해외 라인이 섞여 있음.</p></li>' +
-        '<li class="fcard" style="border-right:0;padding-left:0"><h4>④ 팬덤 방어막이 없다</h4><p>A1엔 팔로워 100만+ 로 짧게 켜도 버티는 카드가 있음. 우리는 ggaoni(495K) 빼면 10만+ 가 없어 노출 빠지면 즉시 추락(hoseok783: 노출 −62%→다이아 −62%).</p></li>' +
+        '<li class="fcard" style="border-right:0;padding-left:0"><h4>① 성실성(방송 일수)이 1순위</h4><p>하루 폭발력(효율)은 이미 상위권급인데 매일 안 켜서 월 누적을 못 만든다.</p></li>' +
+        '<li class="fcard" style="border-right:0;padding-left:0"><h4>② 팬덤 방어막이 없다</h4><p>A1엔 팔로워 100만+ 로 짧게 켜도 버티는 카드가 있음. 우리는 ggaoni(495K) 빼면 10만+ 가 없어 노출 빠지면 즉시 추락(hoseok783: 노출·다이아 동반 −62%).</p></li>' +
+        '<li class="fcard" style="border-right:0;padding-left:0"><h4>③ 상위 구간엔 해외 라인이 섞여 있다</h4><p>900K–2M 구간의 mukdraeyo·ho7777777ho는 해외 라인 — 한국 리그 순위엔 안 잡히지만 졸업·매치 자산.</p></li>' +
       '</ul>';
+    body.innerHTML = out;
+    $("lgGap").hidden = false;
+  }
+
+  /* 졸업 트래커 — 수익 › 비즈니스 핵심 지표 (졸업 기준 = 이번 달 누적 다이아 goal) */
+  function renderGraduation(rows){
+    var sec = $("gradSec"), body = $("gradBody"); if(!sec) return;
+    var goal = roster.gradGoal || 200000;
+    var K = fmtK;
+    var g = rows.filter(function(r){ return r.grad; }).sort(function(a,b){ return b.grad.progress - a.grad.progress; });
+    if(!g.length){ sec.hidden = true; return; }
+    sec.hidden = false;
+    var done = g.filter(function(r){ return r.grad.met; });
+    var close = g.filter(function(r){ return !r.grad.met && r.grad.progress >= goal * 0.55; });
+    $("gradSum").textContent = "· 기준 " + K(goal) + " 누적 · 이번 달 달성 " + done.length + "명" + (close.length ? " · 임박 " + close.length + "명" : "");
+    var perDay = function(r){ return r.grad.progress / 6; };
+    var html = '<div class="scroll" style="border:0"><table style="min-width:460px"><thead><tr>' +
+      '<th>크리에이터</th><th>진행</th><th>남은 다이아</th><th>이번 달 졸업?</th></tr></thead><tbody>';
+    g.forEach(function(r){
+      var p = r.grad.progress, remain = Math.max(0, goal - p);
+      var willMake = r.grad.met || (remain > 0 && perDay(r) * 24 > remain * 1.1);   // 남은 24일 페이스
+      html += '<tr data-handle="' + esc(r.handle) + '" tabindex="0" style="cursor:pointer">' +
+        '<td class="rname" style="font-family:inherit;font-weight:700">' + esc(r.name || r.handle) + '</td>' +
+        '<td class="' + (r.grad.met ? 'hi' : '') + '">' + K(p) + ' / ' + K(goal) + '</td>' +
+        '<td>' + (r.grad.met ? '—' : K(remain)) + '</td>' +
+        '<td class="' + (r.grad.met ? 'hi' : (willMake ? '' : 'lo')) + '">' + (r.grad.met ? '달성 ✓' : (willMake ? '가능 (페이스 유지)' : '이번 달 불가')) + '</td></tr>';
+    });
+    html += '</tbody></table></div>';
+    // 액션
+    var acts = [];
+    if(done.length) acts.push('<li class="fcard" style="border-right:0;padding-left:0"><span class="tag">유지</span><h4>' + done.map(function(r){ return esc(r.name || r.handle); }).join(", ") + ' — 이미 졸업</h4><p>에이전시 리워드 조건은 <b>&lsquo;졸업 크리에이터 랭크 업·유지 비율 ≥ 50%&rsquo;</b>. 졸업만으론 부족 — 이 사람들을 리그에서 <b>유지·승급</b>시켜야 프리미엄 초대·우선 지원 리워드가 열림.</p></li>');
+    if(close.length) acts.push('<li class="fcard" style="border-right:0;padding-left:0"><span class="tag">밀어주기</span><h4>' + close.map(function(r){ return esc(r.name || r.handle) + '(' + Math.round(r.grad.progress/goal*100) + '%)'; }).join(", ") + '</h4><p>남은 기간 방송만 유지하면 자동 졸업. 매치·이벤트 한두 번 더 붙이면 확실. <b>이번 달 졸업자 수를 늘리는 가장 쉬운 카드.</b></p></li>');
+    var far = g.filter(function(r){ return !r.grad.met && r.grad.progress < goal * 0.55; });
+    if(far.length) acts.push('<li class="fcard" style="border-right:0;padding-left:0"><span class="tag">다음 달</span><h4>' + far.length + '명 — 이번 달 졸업 불가</h4><p>' + far.map(function(r){ return esc(r.name || r.handle) + ' ' + K(r.grad.progress); }).join(" · ") + '. 200K는 이번 달 무리. <b>다음 달 목표</b>로 방송 빈도·효율 관리부터. 특히 rayul0522는 48h 방송하고 37K(효율 0.8K/h) — 시간이 아니라 밀도.</p></li>');
+    acts.push('<li class="fcard" style="border-right:0;padding-left:0"><span class="tag">리워드</span><h4>신규 졸업률 10% → 20% 올리면</h4><p>현재 중간 티어(10%). <b>높음(20%)</b> 되면 프리미엄 초대 +1 · 우선 지원. 헬스 스코어는 이미 100(&gt;80 충족). 남은 건 <b>졸업자 수</b>와 <b>졸업자 리그 유지율</b> 두 개.</p></li>');
+    body.innerHTML = html + '<ul class="faq" style="grid-template-columns:1fr;border-top:0;margin-top:10px">' + acts.join("") + '</ul>';
+  }
+
+  /* 신규 크리에이터 — 데이터 › 신규 크리에이터 분석 */
+  function renderNewcomers(rows){
+    var sec = $("newcSec"), body = $("newcBody"); if(!sec) return;
+    var K = fmtK;
+    var n = rows.filter(function(r){ return r.newc; }).sort(function(a,b){ return b.diamonds - a.diamonds; });
+    if(!n.length){ sec.hidden = true; return; }
+    sec.hidden = false;
+    $("newcSum").textContent = "· 이번 달 " + n.length + "명 · 첫 주 유효일이 성패를 가른다";
+    var html = n.map(function(r){
+      var nc = r.newc, weak = nc.firstWeekDays < 2;
+      var sev = (r.diamonds > 5000 && nc.matches >= 3) ? 2 : (nc.lives <= 1 ? 3 : 3);
+      var problem, action;
+      if(nc.matches >= 3 && r.diamonds > 4000){
+        problem = "신인 중 <b>유일하게 궤도</b> — 라이브 " + nc.lives + "회 · 매치 <b>" + nc.matches + "회</b> · 영상 " + nc.videos + "개 · 팔로워 " + r.newFollowers + ". " + K(r.diamonds) + " 다이아.";
+        action = "이 사람이 <b>신인 온보딩의 모범</b>. 매치·영상을 계속 붙이고 다음 달 졸업(200K) 목표. 첫 주 유효일 0은 아쉬우니 이번 달 방송 빈도만 6일로.";
+      } else if(nc.lives <= 1 || r.hours < 3){
+        problem = "라이브 <b>" + nc.lives + "회</b> · 방송 " + r.hours.toFixed(1) + "h · 매치 " + nc.matches + " · 영상 " + nc.videos + " · 다이아 " + K(r.diamonds) + ". 사실상 <b>첫 주에 이탈</b>.";
+        action = "가입 " + (nc.joinDate ? nc.joinDate.slice(5) : "?") + " · 아직 늦지 않음. <b>온보딩 계약(첫 2주 최소 방송 4일·12h)</b> 즉시 체결 + 담당 배정. 안 되면 이번 달 안에 정리 판단.";
+      } else {
+        problem = "라이브 " + nc.lives + "회 · 방송 " + r.hours.toFixed(1) + "h · 매치 " + nc.matches + " · 다이아 " + K(r.diamonds) + ".";
+        action = "방송은 하는데 <b>매치·영상이 0</b>. 신인 노출은 매치·영상에서 나옴 — 주 3매치 + 주 3영상 목표.";
+      }
+      return '<div class="dgrow s' + Math.min(sev,3) + '" data-handle="' + esc(r.handle) + '" tabindex="0">' +
+        '<div class="dgn">' + esc(r.name || ("@" + r.handle)) + '<span class="lgm">가입 ' + (nc.joinDate ? nc.joinDate.slice(5) : "?") + '</span></div>' +
+        '<p class="dgp">' + problem + '</p><p class="dga">' + action + '</p></div>';
+    }).join("");
+    html += '<p class="dgc" style="padding:11px 0 2px">공통 — <b>4명 전원 &lsquo;첫 주 유효 라이브 일수 0&rsquo;</b>. 첫 주가 알고리즘 판단 기간인데 아무도 못 채웠다. 온보딩에서 &lsquo;가입 첫 주 최소 방송&rsquo;을 계약·체크 안 하면 계속 이렇게 샌다.</p>';
+    body.innerHTML = html;
   }
 
   function renderRoster(){
@@ -2184,6 +2284,7 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
         overseasRatio:h.overseasRatio, overseasMom:h.overseasMom, regions:h.regions,
         exposure:h.exposure || 0, viewers:h.viewers || 0, newFollowers:h.newFollowers || 0,
         followers:(hd && hd.followers) || (re && re.e.followers) || 0,
+        grad:h.grad || null, newc:h.newc || null,
         trend:trend7(hd), status:h.status
       };
       row.flags = flagsFor(row);
@@ -2205,7 +2306,9 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
     });
 
     renderRosterDiag(rows);
-    renderLeagueGap(rows);
+    renderGraduation(rows);
+    renderNewcomers(rows);
+    renderBrackets(rows);
 
     var html = rows.map(function(r){
       var col = /^#[0-9a-fA-F]{3,8}$/.test(r.color || "") ? esc(r.color) : "var(--surface-2)";
@@ -2273,10 +2376,13 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
     var tr = ev.target.closest("tr[data-handle]");
     if(tr){ ev.preventDefault(); openHost(tr.getAttribute("data-handle")); }
   });
-  $("rosterDiag").addEventListener("click", function(ev){
-    if(ev.target.closest(".dgmore")){ try{ $("rosterScroll").scrollIntoView({behavior:"smooth", block:"start"}); }catch(e){} return; }
-    var row = ev.target.closest(".dgrow[data-handle]");
-    if(row) openHost(row.getAttribute("data-handle"));
+  ["rosterDiag","gradBody","newcBody"].forEach(function(id){
+    var box = $(id); if(!box) return;
+    box.addEventListener("click", function(ev){
+      if(ev.target.closest(".dgmore")){ try{ $("rosterTableFold").scrollIntoView({behavior:"smooth"}); }catch(e){} return; }
+      var row = ev.target.closest("[data-handle]");
+      if(row) openHost(row.getAttribute("data-handle"));
+    });
   });
 
   /* ── 컷 데이터 입력 ── */
