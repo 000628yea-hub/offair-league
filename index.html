@@ -80,6 +80,7 @@
 }
 
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html{-webkit-text-size-adjust:100%}
 body{
   margin:0;
@@ -223,15 +224,25 @@ details.fold.subtle .ladder{border-top:0;margin-top:8px;padding-top:0}
 .cutline{border-top:1px solid var(--line);margin-top:20px;padding-top:18px}
 .cutline .ct{font-size:11px;letter-spacing:.04em;color:var(--muted);font-weight:600;text-transform:uppercase;margin-bottom:12px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
 .cutline .ct .src{text-transform:none;letter-spacing:0;font-weight:400}
-.cutgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
-.cutgrid .cg{background:var(--surface-2);border-radius:12px;padding:11px 8px;text-align:center}
-.cutgrid .cg.hit{background:var(--shard-soft);outline:1.5px solid var(--shard)}
-.cutgrid .cg .cgk{font-size:10.5px;color:var(--muted);margin-bottom:4px}
-.cutgrid .cg .cgv{font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:14.5px;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
-.cutgrid .cg.hit .cgv{color:var(--shard)}
-.cutgrid .cg .cgd{font-size:10px;color:var(--muted);margin-top:3px}
-.cutline .none{font-size:12.5px;color:var(--muted);line-height:1.55;margin:0}
-@media (max-width:680px){.cutgrid{grid-template-columns:1fr 1fr}}
+/* 컷 사다리 — 리그별 구간을 한 줄씩, 숫자는 그 자리에서 수정 */
+.ladrow{display:grid;grid-template-columns:74px 96px 1fr;gap:10px;align-items:center;
+  padding:11px 13px;border-radius:12px;background:var(--surface-2);margin-bottom:6px}
+.ladrow:last-of-type{margin-bottom:0}
+.ladrow.hit{background:var(--shard-soft);box-shadow:inset 0 0 0 1.5px var(--shard)}
+.ladrow.below{background:var(--danger-soft);box-shadow:inset 0 0 0 1.5px var(--danger)}
+.ladrow .lk{font-size:12.5px;font-weight:700;color:var(--ink-2)}
+.ladrow.hit .lk{color:var(--shard)} .ladrow.below .lk{color:var(--danger)}
+.ladrow .lv input{width:100%;font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:14px;
+  text-align:right;padding:7px 9px;border:1px solid var(--line-strong);border-radius:8px;background:var(--field);color:var(--ink);
+  font-variant-numeric:tabular-nums}
+.ladrow .lv input:focus{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-tint);outline:none}
+.ladrow .lv input::placeholder{color:var(--line-strong);font-weight:400}
+.ladrow .ls{font-size:12.5px;font-weight:600;text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}
+.ladrow .ls.ok{color:var(--up)}
+.ladrow .ls.bad{color:var(--danger)}
+.cutline .hinttap{font-size:11.5px;color:var(--muted);margin:11px 0 0;line-height:1.55}
+.cutline .none{font-size:12.5px;color:var(--muted);line-height:1.55;margin:0 0 12px}
+@media (max-width:520px){.ladrow{grid-template-columns:58px 84px 1fr;gap:8px;padding:10px}}
 .ladder{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:16px;margin-top:16px}
 .pill{border:1px solid var(--line-strong);border-radius:999px;padding:5px 13px;font-weight:700;
   font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ink-2)}
@@ -562,8 +573,8 @@ footer b{color:var(--ink-2);font-weight:600}
     </div>
 
     <div class="seg" role="group" aria-label="계산 방식">
-      <button type="button" id="mode-rank" aria-pressed="true">순위로 계산</button>
-      <button type="button" id="mode-cut" aria-pressed="false">다이아로 계산</button>
+      <button type="button" id="mode-cut" aria-pressed="true">받은 다이아로</button>
+      <button type="button" id="mode-rank" aria-pressed="false">순위로</button>
     </div>
 
     <div id="rankFields">
@@ -584,9 +595,9 @@ footer b{color:var(--ink-2);font-weight:600}
 
     <div id="cutFields" hidden>
       <div class="field">
-        <label for="diamond">오늘 예상 다이아</label>
+        <label for="diamond">지금 받은 다이아</label>
         <input type="number" id="diamond" min="0" step="100" value="42000" inputmode="numeric">
-        <span class="hint" id="cutHint">결과에 이 리그 컷이 같이 나옵니다.</span>
+        <span class="hint" id="cutHint">컷을 넘겼는지, 조각까지 얼마나 남았는지 오른쪽에 바로 나옵니다.</span>
       </div>
     </div>
 
@@ -629,7 +640,7 @@ footer b{color:var(--ink-2);font-weight:600}
 
     <div class="gauge" id="gauge"></div>
 
-    <div class="stats">
+    <div class="stats" id="statRow">
       <div class="stat" id="s1"><div class="l">승급까지</div><div class="v">—</div><div class="s">조각 4개 도달</div></div>
       <div class="stat" id="s2"><div class="l">목표</div><div class="v">—</div><div class="s">조각 한 개 더</div></div>
       <div class="stat" id="s3"><div class="l">현재 위치</div><div class="v">—</div><div class="s">리그 안에서</div></div>
@@ -653,12 +664,12 @@ footer b{color:var(--ink-2);font-weight:600}
   </div>
 </div>
 
-<!-- 컷 데이터 업데이트 (평소엔 접혀 있음) -->
+<!-- 컷 숫자 한 번에 넣기 (선택 · 평소엔 접혀 있음) -->
 <section class="block">
   <details id="cutData" class="fold">
-  <summary><h2>컷 데이터 업데이트</h2> <span class="savenote" id="cutDataSum"></span></summary>
+  <summary><h2>컷 숫자 한 번에 넣기 <span style="color:var(--muted);font-weight:400;font-size:13px">(선택)</span></h2> <span class="savenote" id="cutDataSum"></span></summary>
   <div class="panel">
-  <p class="sub" style="margin:0 0 16px">리그 컷 페이지를 통째로 붙여넣으면 18개 리그가 한 번에 채워집니다. 저장 값은 이 브라우저에만 남습니다.</p>
+  <p class="sub" style="margin:0 0 16px">컷은 결과 화면에서 한 칸씩 바로 고칠 수 있습니다. 여기는 <b>틱두 컷 페이지를 통째로 붙여넣어 18개 리그를 한 번에</b> 채우는 용도예요. 저장 값은 이 브라우저에만 남습니다.</p>
     <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:14px">
       <div style="font-weight:700;font-size:15px" id="cutTitle">C3 리그</div>
       <div class="savenote" id="savenote">아직 저장된 컷이 없습니다.</div>
@@ -897,7 +908,7 @@ footer b{color:var(--ink-2);font-weight:600}
     return s ? s.charAt(0).toUpperCase() : "?";
   }
 
-  var DEFAULTS = {league:"C3", mode:"rank", rank:18, total:99, diamond:42000, shards:0, shield:0, guardian:false};
+  var DEFAULTS = {league:"C3", mode:"cut", rank:18, total:99, diamond:42000, shards:0, shield:0, guardian:false};
   var state = {};
   for(var k in DEFAULTS) state[k] = DEFAULTS[k];
 
@@ -1057,20 +1068,22 @@ footer b{color:var(--ink-2);font-weight:600}
     if(res.missing){
       deltaEl.className = "delta keep";
       deltaEl.innerHTML = '<div class="big">?</div><div class="cap">오늘 조각</div>';
-      head.textContent = "컷 데이터가 없습니다";
-      body.textContent = "아래 ‘컷 데이터 업데이트’를 열어 붙여넣거나, ‘순위로 계산’을 쓰세요.";
+      head.textContent = "컷 숫자를 넣어주세요";
+      body.textContent = "아래 사다리에 +2 · +1 · 유지컷 다이아를 넣으면 바로 판정합니다.";
       note.textContent = "";
       $("nextgoal").hidden = true;
-      $("s2").hidden = true; $("s3").hidden = true;
-      renderGauge(state.shards, 0);
-      renderCutline(lg, res);
-      setStat("s1","—","조각 4개 도달","","승급까지");
+      $("gauge").hidden = true;
+      $("statRow").hidden = true;
+      $("pathFold").hidden = true;
+      renderCutLadder(lg, res);
       $("tl").innerHTML = "";
-      renderLadder(lg, up, down, 0);
-      updateSticky("?", "keep", "컷 데이터가 없습니다", lg + " 리그 랭킹을 넣어주세요");
+      updateSticky("?", "keep", "컷 숫자를 넣어주세요", lg + " +2 · +1 · 유지컷 다이아 입력");
       lastSummary = "";
       return;
     }
+    $("gauge").hidden = state.mode === "cut";
+    $("pathFold").hidden = false;
+    $("statRow").hidden = false;
 
     var gain = res.gain + (state.guardian ? 1 : 0);
     var cls = gain > 0 ? "gain" : (gain < 0 ? "loss" : "keep");
@@ -1145,14 +1158,15 @@ footer b{color:var(--ink-2);font-weight:600}
     }
     (function(){
       var el = $("nextgoal");
-      if(!ng.v){ el.hidden = true; return; }
+      /* 다이아 모드에선 컷 사다리가 '다음 목표'를 대신하므로 숨김 */
+      if(!ng.v || state.mode === "cut"){ el.hidden = true; return; }
       el.hidden = false;
       el.className = "nextgoal" + (ng.done ? " done" : "");
       el.innerHTML = (ng.k ? '<span class="ng-k">' + ng.k + '</span>' : '') +
         '<span class="ng-v">' + ng.v + '</span>' +
         (ng.s ? '<span class="ng-s">' + ng.s + '</span>' : '');
     })();
-    /* 다이아 모드에선 목표·입력값 stat 이 위 박스와 겹치므로 숨김 */
+    /* 다이아 모드에선 목표·입력값 stat 이 사다리와 겹치므로 숨김 */
     $("s2").hidden = state.mode === "cut";
     $("s3").hidden = state.mode === "cut";
 
@@ -1161,7 +1175,7 @@ footer b{color:var(--ink-2);font-weight:600}
       : "자정 00:00 순위로 확정됩니다. 22~24시에 순위가 자주 바뀝니다.";
 
     renderGauge(state.shards, gain);
-    renderCutline(lg, res);
+    renderCutLadder(lg, res);
     renderLadder(lg, up, down, gain);
     renderTimeline(gain, up, down);
 
@@ -1215,51 +1229,83 @@ footer b{color:var(--ink-2);font-weight:600}
     }
   }
   /* 결과 패널 안에 이 리그의 컷 4칸을 바로 보여준다 */
-  function renderCutline(lg, res){
+  /* 저장된 컷 값 {frag: score} */
+  function currentCutVals(lg){
+    var e = cuts[lg], m = {};
+    if(e && e.rows) e.rows.forEach(function(row){ m[row.fragments] = row.score; });
+    return m;
+  }
+  /* 결과 화면에서 컷 한 칸을 직접 고칠 때 — 수동 저장 버튼과 같은 스키마 */
+  function writeCut(lg, frag, val){
+    var vals = currentCutVals(lg);
+    var num = (val === "" || val == null || !isFinite(Number(val))) ? null : Number(val);
+    vals[frag] = num;
+    var n = Math.max(2, (cuts[lg] && cuts[lg].count) || state.total || 99);
+    var old = cuts[lg] || {};
+    cuts[lg] = {
+      league: lg, tier: lg[0], count: n,
+      top: old.top != null ? old.top : null, median: old.median != null ? old.median : null,
+      ranking: old.ranking || null,
+      rows: specFor(lg).map(function(sp){
+        return {pct:sp.pct, fragments:sp.fragments, rank:cutRank(sp.pct, n), score: vals[sp.fragments] != null ? vals[sp.fragments] : null};
+      }),
+      prev: old.prev || prevOf(lg), savedAt: stamp(),
+      source: (old.source && /^tikdo/.test(old.source)) ? "manual" : (old.source || "manual")
+    };
+    saveCuts();
+  }
+
+  /* 컷 사다리 — 리그 구간을 위→아래로, 각 줄에 컷 숫자(수정 가능) + 지금 다이아로부터 거리 */
+  function renderCutLadder(lg, res){
     var el = $("cutline");
-    var e = cuts[lg], r = rulesFor(lg);
-    if(!e || !hasCuts(lg)){
-      el.innerHTML = '<p class="none">' + lg + ' 리그 컷이 없습니다. 아래 <b>컷 데이터 업데이트</b>에서 붙여넣으면 채워집니다.</p>';
-      return;
-    }
-    var estKeep = keepEstimated(lg);
-    var defs = [
-      {f:3, k:"+3 조각", on:r.p3},
-      {f:2, k:"+2 조각", on:true},
-      {f:1, k:"+1 조각", on:true},
-      {f:0, k:(estKeep ? "유지(추정)" : "유지컷"), on:!!r.keep}
-    ];
-    /* 지금 내 위치가 어느 칸인지 (다이아 모드일 때) */
-    var d = state.diamond, hitF = null;
-    if(state.mode === "cut"){
-      var c3=scoreOf(e,3),c2=scoreOf(e,2),c1=scoreOf(e,1),c0=scoreOf(e,0);
-      if(c3!=null && r.p3 && d>=c3) hitF=3;
-      else if(c2!=null && d>=c2) hitF=2;
-      else if(c1!=null && d>=c1) hitF=1;
-      else if(!r.keep || c0==null || d>=c0) hitF=0;
+    var r = rulesFor(lg), e = cuts[lg];
+    var vals = currentCutVals(lg);
+    var d = (state.mode === "cut") ? Math.max(0, Number(state.diamond) || 0) : null;
+
+    var defs = [];
+    if(r.p3) defs.push({f:3, k:"+3 조각", pct:r.p3});
+    defs.push({f:2, k:"+2 조각", pct:r.p2});
+    defs.push({f:1, k:"+1 조각", pct:r.p1});
+    if(r.keep) defs.push({f:0, k:"유지컷", pct:r.keep});
+
+    var hitF = null;
+    if(d != null){
+      if(r.p3 && vals[3]!=null && d>=vals[3]) hitF=3;
+      else if(vals[2]!=null && d>=vals[2]) hitF=2;
+      else if(vals[1]!=null && d>=vals[1]) hitF=1;
+      else if(!r.keep || vals[0]==null || d>=vals[0]) hitF=0;
       else hitF=-1;
     }
-    var cells = defs.map(function(x){
-      if(!x.on) return '<div class="cg"><div class="cgk">' + x.k + '</div><div class="cgv">–</div><div class="cgd">해당 없음</div></div>';
-      var sc = scoreOf(e, x.f);
-      var prev = e.prev ? e.prev["f"+x.f] : null;
-      var dd = "";
-      if(sc!=null && prev!=null && prev>0){
-        var diff = sc - prev, pc = Math.round(Math.abs(diff)/prev*100);
-        if(diff!==0 && pc>=3) dd = (diff>0?"▲":"▼") + " " + pc + "%";
+
+    var rows = defs.map(function(x){
+      var sc = vals[x.f];
+      var cls = hitF===x.f ? " hit" : (hitF===-1 && x.f===0 ? " below" : "");
+      var st;
+      if(d == null){
+        st = '<span class="ls">상위 ' + Math.round(x.pct*100) + '%</span>';
+      } else if(sc == null){
+        st = '<span class="ls">숫자를 넣어주세요</span>';
+      } else if(d >= sc){
+        st = (hitF===x.f)
+          ? '<span class="ls ok">지금 여기 · +' + fmt(d - sc) + ' 여유</span>'
+          : '<span class="ls ok">✓ 넘음</span>';
+      } else {
+        st = '<span class="ls' + (x.f===0 ? ' bad' : '') + '">' + fmt(sc - d) + ' 더 필요' + (x.f===0 ? ' · 안 넘으면 −1' : '') + '</span>';
       }
-      return '<div class="cg' + (hitF===x.f ? " hit" : "") + '">' +
-        '<div class="cgk">' + x.k + '</div>' +
-        '<div class="cgv">' + (sc!=null ? fmt(sc) : "?") + '</div>' +
-        '<div class="cgd">' + (dd || (sc!=null ? "상위 " + Math.round(x.f===3?r.p3*100:x.f===2?r.p2*100:x.f===1?r.p1*100:r.keep*100) + "%" : "미저장")) + '</div>' +
+      return '<div class="ladrow' + cls + '">' +
+        '<span class="lk">' + x.k + '</span>' +
+        '<span class="lv"><input type="text" inputmode="numeric" autocomplete="off" data-frag="' + x.f + '" ' +
+          'value="' + (sc!=null ? fmt(sc) : "") + '" placeholder="—" aria-label="' + x.k + ' 컷 다이아"></span>' +
+        st +
       '</div>';
     }).join("");
-    var tip = state.mode === "cut"
-      ? (res && res.nextCut != null && res.nextCut > 0 ? res.nextLabel + "까지 " + fmt(res.nextCut) + " 더" : "")
-      : "‘다이아로 계산’으로 바꾸면 내 위치가 표시됩니다";
-    el.innerHTML = '<div class="ct"><span>' + lg + ' 리그 컷</span>' + (e.savedAt ? '<span class="src">' + e.savedAt + '</span>' : '') + '</div>' +
-      '<div class="cutgrid">' + cells + '</div>' +
-      (tip ? '<p class="none" style="margin-top:9px">' + tip + '</p>' : '');
+
+    var head = '<div class="ct"><span>' + lg + ' 리그 컷</span>' +
+      (e && e.savedAt ? '<span class="src">' + esc(e.savedAt) + ' 저장</span>' : '') + '</div>';
+    var msg = "";
+    if(d != null && !hasCuts(lg)) msg = '<p class="none">이 리그 컷이 아직 없습니다. 아래 칸에 <b>+2 · +1 · 유지컷</b> 다이아를 넣으면 바로 판정합니다.</p>';
+    el.innerHTML = head + msg + rows +
+      '<p class="hinttap">숫자를 눌러서 바로 고칠 수 있어요. 틱두에서 본 정확한 컷을 넣으면 판정이 정확해집니다.</p>';
   }
   function renderLadder(lg, up, down, gain){
     $("ladder").innerHTML =
@@ -2055,6 +2101,16 @@ footer b{color:var(--ink-2);font-weight:600}
 
   $("clearCut").addEventListener("click", function(){
     delete cuts[state.league]; saveCuts(); loadCutCard(); renderTable(); renderRanking(); render();
+  });
+
+  /* 결과 화면 컷 사다리에서 숫자 직접 수정 */
+  $("cutline").addEventListener("change", function(ev){
+    var inp = ev.target;
+    if(!inp || inp.tagName !== "INPUT" || inp.getAttribute("data-frag") == null) return;
+    var frag = Number(inp.getAttribute("data-frag"));
+    var raw = String(inp.value).replace(/[,\s]/g, "");
+    writeCut(state.league, frag, raw);
+    loadCutCard(); renderTable(); renderRanking(); render();
   });
 
   function setSource(s){
