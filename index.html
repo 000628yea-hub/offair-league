@@ -1816,6 +1816,8 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
       note.textContent = "읽을 수 있는 호스트를 못 찾았습니다. 표 전체(닉네임·ID 포함)를 복사했는지 확인하세요.";
       return;
     }
+    var tm = $("bsCreator").value.match(/(\d+)\s*중\s*\d+/);
+    if(tm) roster.total = parseInt(tm[1], 10);
     var added = 0, updated = 0;
     a.forEach(function(h){
       var key = normHandle(h.handle);
@@ -1883,17 +1885,19 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
   }
   function flagsFor(r){
     var out = [];
-    if(r.overseasRatio != null && r.overseasRatio >= 0.7) out.push("osea");
+    // 해외는 문제가 아니라 '라인'. 다이아가 정체·하락일 때만 점검 대상.
+    var dOk = r.diamondsMom == null || r.diamondsMom > 0.1;
+    if(r.overseasRatio != null && r.overseasRatio >= 0.5) out.push("osea");
     else if(r.overseasRatio != null && r.overseasRatio >= 0.3 &&
-            (r.overseasRatio >= 0.5 || (r.overseasMom != null && r.overseasMom >= 0.25))) out.push("rising");
+            r.overseasMom != null && r.overseasMom >= 0.25 && !dOk) out.push("rising");
     if(r.eff != null && r.eff < 4000 && r.hours > 25) out.push("loeff");
-    else if(r.eff != null && r.eff < 5000 && r.exposure >= 40000) out.push("conv");
-    if(r.eff != null && r.eff >= 8000 && (r.hours < 22 || r.validDays < 6) && !(r.overseasRatio >= 0.7)) out.push("chance");
-    if(r.validDays && r.validDays <= 3) out.push("days");
+    else if(r.eff != null && r.eff < 5500 && r.exposure >= 90000) out.push("conv");
+    if(r.eff != null && r.eff >= 8000 && (r.hours < 22 || r.validDays < 6)) out.push("chance");
+    if(r.validDays && r.validDays <= 3 && r.diamonds > 20000) out.push("days");
     return out;
   }
-  var FLAG_ICON = {osea:"🔴", rising:"🔺", loeff:"🟠", conv:"🟡", chance:"🟢", days:"⚫"};
-  var FLAG_TXT  = {osea:"해외 고정 (알고리즘이 외국)", rising:"해외로 넘어가는 중", loeff:"시간 대비 저효율", conv:"노출 받는데 전환 실패", chance:"시간만 늘리면 기회", days:"방송일 부족"};
+  var FLAG_ICON = {osea:"🌐", rising:"🔺", loeff:"🟠", conv:"🟡", chance:"🟢", days:"⚫"};
+  var FLAG_TXT  = {osea:"해외 라인 (해외 다이아 위주)", rising:"한국 라인인데 해외 비중 급증 + 다이아 정체", loeff:"시간 대비 저효율", conv:"노출 받는데 전환 실패", chance:"시간만 늘리면 기회", days:"방송일 부족"};
 
   /* 수집한 전체 필드(hostDetail ~2000명, 주로 타사·개인)에서 같은 다이아 레벨 코호트의 평균 */
   function fieldPeers(monthlyDia){
@@ -1914,47 +1918,57 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
     return { n: freq.length, freq: med(freq), perSess: med(perSess), followers: med(fol) };
   }
 
-  /* 호스트 한 명의 '정확히 뭐가 문제인지' + 해야 할 것 + 타사 비교 */
+  /* 호스트 한 명의 '정확히 뭐가 문제인지' + 해야 할 것 + 타사 비교. 모든 호스트가 하나씩 받는다. */
   function diagnose(r){
-    var d = Math.round(r.diamonds), h = r.hours, e = r.eff, days = r.validDays;
+    var d = Math.round(r.diamonds), h = r.hours || 0, e = r.eff, days = r.validDays || 0;
     var os = r.overseasRatio, osM = r.overseasMom, dM = r.diamondsMom;
     var monthly = d / 6 * 30;
     var reg = (r.regions && r.regions.length) ? r.regions.slice(0,2).join("·") : "외국";
     var K = function(n){ return fmtK(Math.round(n)); };
+    var rookie = /미졸업|미도달/.test(r.status || "");
     var out = null;
 
-    // 리그 유지컷 밖 (강등권)
     var lgCount = (r.lg && cuts[r.lg] && cuts[r.lg].count) || 99;
     var keep = r.lg ? (rulesFor(r.lg).keep || null) : null;
     var demote = (r.lg && r.rank && keep && r.rank > Math.ceil(keep * lgCount));
 
-    if(demote && !(os != null && os >= 0.7)){
-      out = { sev:3, kind:"demote",
+    if(rookie && r.exposure >= 40000 && (dM == null || dM > 0.5) && d < 20000 && h >= 1){
+      out = { sev:4, kind:"rookie_push",
+        problem: "<b>신인 골든타임</b> — 노출 <b>" + K(r.exposure) + "</b>" + (r.newFollowers >= 150 ? " · 새 팔로워 " + r.newFollowers : "") + " 로 알고리즘이 밀어주는 중인데 방송 <b>" + h.toFixed(1) + "h·" + days + "일</b>, 다이아는 <b>" + K(d) + "</b>뿐.",
+        action: (os != null && os >= 0.5)
+          ? "노출은 지금 " + Math.round(os*100) + "% 해외로 흐름. 이번 달 안에 방송 시간대 고정 안 하면 해외로 굳음. 시간 20h/6일 + 시간대 고정 즉시."
+          : "이 창은 4주 안에 닫힘. 방송 20h/6일로 올리고 오프닝·선물유도 집중 코칭. 지금이 유일한 타이밍." };
+    } else if(d < 3000 && h < 4){
+      out = { sev:0, kind:"idle",
+        problem: rookie ? "졸업 전인데 이번 기간 방송이 거의 없음 (" + h.toFixed(1) + "h · 다이아 " + K(d) + "). 사실상 이탈." : "이번 기간 방송 거의 없음 (" + h.toFixed(1) + "h · 다이아 " + K(d) + ")" + (r.exposure >= 30000 ? ", 노출은 " + K(r.exposure) : "") + ".",
+        action: rookie ? "온보딩 계약(첫 2주 최소 방송시간) 이행 확인. 안 되면 정리 대상." : "휴면 직전. 복귀 의사 확인." };
+    } else if(demote && !(os != null && os >= 0.5)){
+      out = { sev:4, kind:"demote",
         problem: r.lg + " <b>" + r.rank + "위</b> / " + lgCount + "명 = 유지컷(" + Math.ceil(keep*lgCount) + "위) 밖. <b>지금 페이스면 강등</b>." +
           (r.diamonds >= 300000 ? " 에이전시 최상위 화력인데 순위가 안 받쳐줍니다." : ""),
         action: (e != null && e >= 12000)
           ? "효율(" + K(e) + "/h)은 이미 이 리그 최상위급. 문제는 방송량 — 주 6일·회당 4.5h로만 올리면 순위 방어. 이번 시즌 최우선."
           : "방송일수·회당 시간 둘 다 올려야. 이 리그에서 버티려면 주 25h+ 필요." };
-    } else if(os != null && os >= 0.7){
-      out = { sev:3, kind:"osea",
-        problem: "알고리즘이 <b>" + reg + "</b> 피드로 굳었습니다. 방송·시청·선물이 해외 <b>" + Math.round(os*100) + "%</b> — 한국 시청자는 거의 안 붙습니다.",
-        action: (osM != null && osM <= 0.05)
-          ? "한국 복귀는 사실상 불가. 해외 전문으로 인정하고 " + reg + " 피크 시간대·같은 지역 매치에 최적화하는 게 현실적."
-          : "방송 시간대를 KST 저녁으로 강제 이동 + 한국 콘셉트로 30일 리셋. 안 하면 영구 고정." };
-    } else if(os != null && os >= 0.35 && (os >= 0.5 || (osM != null && osM >= 0.25))){
+    } else if(os != null && os >= 0.5 && d > 10000 && (dM == null || dM > -0.25)){
+      out = { sev:1, kind:"osea",
+        problem: "<b>해외 라인</b> (해외 다이아 <b>" + Math.round(os*100) + "%</b>" + (r.regions && r.regions.length ? " · " + reg : "") + "). 되돌릴 필요 없음 — 다이아·매치·해외 팔로워는 여기서 나옵니다.",
+        action: (r.regions && r.regions.length)
+          ? reg + " 피크 시간대에 방송 배치 + 같은 지역대 매치를 붙이면 효율이 더 오릅니다."
+          : "대상 지역 피크에 방송 배치 + 지역 간 매치 활용." };
+    } else if(os != null && os >= 0.35 && osM != null && osM >= 0.25 && (dM == null || dM <= 0.1)){
       out = { sev:3, kind:"rising",
-        problem: "해외 <b>" + Math.round(os*100) + "%</b>로 넘어가는 중" + (osM != null && osM >= 0.15 ? " (전월 대비 +" + Math.round(osM*100) + "%p)" : "") + ". 아직 반반이라 되돌릴 수 있습니다.",
-        action: "이번 달 안에 KST 20–24시 고정 + 한국 시청자 매치. 다음 달 되면 해외로 고정됩니다." };
+        problem: "한국 라인인데 해외 비중이 <b>" + Math.round(os*100) + "%</b>로 느는 중 (+" + Math.round(osM*100) + "%p), 다이아는 " + (dM != null && dM <= -0.1 ? Math.round(dM*100) + "%" : "정체") + ". 방향이 흔들립니다.",
+        action: "한국으로 갈지 해외로 갈지 정할 것. 한국이면 KST 저녁 고정 + 한국 매치, 해외면 대상 지역에 몰아주기. 어중간한 게 제일 손해." };
     } else if(days && days <= 3 && d > 20000){
-      out = { sev:3, kind:"days",
+      out = { sev:4, kind:"days",
         problem: "이번 기간 <b>" + days + "일</b>만 방송(주 6일 기준 미달). 켠 날 성적은 나쁘지 않은데 빈도가 안 나옵니다.",
         action: "회당 시간·콘텐츠 이전에 '매일 켜기'부터. 방송 빈도가 리그의 1순위 변수." };
     } else if(e != null && e < 5500 && r.exposure >= 90000){
-      out = { sev:2, kind:"conv",
+      out = { sev:3, kind:"conv",
         problem: "노출 <b>" + K(r.exposure) + "</b>(에이전시 최상위권)인데 시간당 <b>" + K(e) + "</b>" + (dM != null && dM <= -0.4 ? " · 다이아는 전월 대비 " + Math.round(dM*100) + "%" : "") + ". 알고리즘이 시청자를 대량으로 보내주는데 못 잡고 흘려보냅니다.",
         action: "들어온 시청자 3초 안에 붙잡는 오프닝 + 첫 10분 몰입 구간 설계. 노출은 이미 넘칩니다 — 전환만 붙으면 급등." };
     } else if(e != null && e < 4000 && h > 25){
-      out = { sev:2, kind:"loeff",
+      out = { sev:3, kind:"loeff",
         problem: "방송 <b>" + h.toFixed(1) + "h</b>인데 시간당 <b>" + K(e) + "</b>. 시간을 태우는 만큼 산출이 안 나옵니다 — 방송량이 아니라 밀도 문제.",
         action: (dM != null && dM >= 1)
           ? "다만 전월 대비 +" + Math.round(dM*100) + "% 성장 중이라 1~2주 더 관찰. 그 뒤에도 효율 안 오르면 콘텐츠 재점검."
@@ -1964,21 +1978,26 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
       out = { sev:2, kind:"chance",
         problem: "효율 <b>" + K(e) + "/h</b>로 이미 검증됐는데 방송 <b>" + h.toFixed(1) + "h·" + days + "일</b>뿐. 시간이 부족한 것뿐입니다.",
         action: "주 6일·회당 4~4.5h(" + tgt + "h)로만 늘리면 이번 기간 <b>" + K(proj) + "</b> 예상 → 상위 리그 승급 사정권. 콘텐츠 건드릴 것 없음." };
-    } else if(dM != null && dM <= -0.4){
-      out = { sev:2, kind:"drop",
+    } else if(dM != null && dM <= -0.4 && d > 15000){
+      out = { sev:3, kind:"drop",
         problem: "다이아 전월 대비 <b>" + Math.round(dM*100) + "%</b> 하락" + (r.hours && r.hours < 20 ? " (방송도 " + h.toFixed(1) + "h로 축소)" : "") + ".",
         action: "슬럼프 — 번아웃·외부요인 면담 먼저. 방송 압박은 그다음." };
+    } else if(rookie){
+      out = { sev:2, kind:"rookie_thin",
+        problem: "신인(졸업 전). 방송 <b>" + h.toFixed(1) + "h·" + days + "일</b> · 다이아 " + K(d) + "" + (r.exposure ? " · 노출 " + K(r.exposure) : "") + (os != null && os >= 0.4 ? " · 해외 " + Math.round(os*100) + "%" : "") + ".",
+        action: (os != null && os >= 0.4)
+          ? "노출이 해외로 흐름 — 방송 시간대부터 KST 저녁으로. 그다음 최소 방송량(주 4일·15h) 관리."
+          : "아직 궤도 전. 주 4일·회당 3h부터 계약으로 묶고 오프닝 코칭." };
     } else {
       out = { sev:1, kind:"ok",
         problem: (dM != null && dM > 0.3)
           ? "성장 중 (전월 대비 +" + Math.round(dM*100) + "%). 특이 문제 없음 — 페이스 유지."
-          : "지표상 특이사항 없음. 페이스 유지.",
+          : "지표상 특이사항 없음. 페이스 유지." + (e != null ? " (효율 " + K(e) + "/h · " + h.toFixed(1) + "h)" : ""),
         action: "" };
     }
 
-    // 타사 동급 비교
     var p = fieldPeers(monthly);
-    if(p){
+    if(p && d > 30000){
       var ourFreq = days / 6, ourSess = days ? h / days : 0;
       var gap = [];
       if(p.freq - ourFreq > 0.12) gap.push("방송빈도 " + Math.round(ourFreq*100) + "% vs 동급 " + Math.round(p.freq*100) + "%");
@@ -1989,35 +2008,48 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
     return out;
   }
 
+  var DIAG_GROUP = {
+    demote:"우선 개입", days:"우선 개입", drop:"우선 개입", rising:"우선 개입", loeff:"우선 개입", conv:"우선 개입",
+    rookie_push:"신인 골든타임 — 지금 코칭",
+    chance:"끌어올릴 수 있음 — 시간만 늘리면",
+    rookie_thin:"신인 — 관리 필요",
+    osea:"해외 라인 — 되돌리지 말고 최적화",
+    ok:"이상 없음", idle:"방송 거의 없음"
+  };
+  var DIAG_ORDER = ["우선 개입", "신인 골든타임 — 지금 코칭", "끌어올릴 수 있음 — 시간만 늘리면", "신인 — 관리 필요", "해외 라인 — 되돌리지 말고 최적화", "방송 거의 없음", "이상 없음"];
+
   function renderRosterDiag(rows){
     var el = $("rosterDiag");
     if(!el) return;
-    var all = rows.map(function(r){ return { r:r, dg: diagnose(r) }; }).filter(function(x){ return x.dg; });
-    var probs = all.filter(function(x){ return x.dg.sev >= 2 && x.dg.kind !== "chance"; })
-      .sort(function(a,b){ return (b.dg.sev - a.dg.sev) || (b.r.diamonds - a.r.diamonds); });
-    var chances = all.filter(function(x){ return x.dg.kind === "chance"; })
-      .sort(function(a,b){ return b.r.eff - a.r.eff; });
-    if(!probs.length && !chances.length){ el.innerHTML = ""; return; }
+    var all = rows.map(function(r){ return { r:r, dg: r._dg || diagnose(r) }; }).filter(function(x){ return x.dg; });
+    var byG = {};
+    all.forEach(function(x){ var g = DIAG_GROUP[x.dg.kind] || "이상 없음"; (byG[g] = byG[g] || []).push(x); });
+    if(!all.length){ el.innerHTML = ""; return; }
 
     function card(x){
       var r = x.r, dg = x.dg;
       var lgm = (r.lg && !/유지컷/.test(dg.problem)) ? '<span class="lgm">' + esc(r.lg) + (r.rank ? ' ' + r.rank + '위' : '') + '</span>' : '';
-      return '<div class="dgrow s' + dg.sev + '" data-handle="' + esc(r.handle) + '" tabindex="0">' +
+      return '<div class="dgrow s' + Math.min(dg.sev, 3) + '" data-handle="' + esc(r.handle) + '" tabindex="0">' +
         '<div class="dgn">' + esc(r.name || ("@" + r.handle)) + lgm + '</div>' +
         '<p class="dgp">' + dg.problem + '</p>' +
         (dg.action ? '<p class="dga">' + dg.action + '</p>' : '') +
         (dg.compare ? '<p class="dgc">' + esc(dg.compare) + '</p>' : '') +
       '</div>';
     }
-    var html = "";
-    if(probs.length){
-      var pShow = probs.slice(0, 10);
-      html += '<p class="dgh">우선 개입 — ' + probs.length + '명</p>' + pShow.map(card).join("");
-      if(probs.length > pShow.length) html += '<div class="dgmore">표에서 나머지 ' + (probs.length - pShow.length) + '명</div>';
-    }
-    if(chances.length){
-      html += '<p class="dgh" style="border-top-color:var(--line)">끌어올릴 수 있음 — 시간만 늘리면 (' + chances.length + '명)</p>' + chances.slice(0, 6).map(card).join("");
-    }
+    var html = "", first = true;
+    DIAG_ORDER.forEach(function(g){
+      var arr = byG[g];
+      if(!arr || !arr.length) return;
+      arr.sort(function(a,b){ return (b.dg.sev - a.dg.sev) || (b.r.diamonds - a.r.diamonds); });
+      var st = first ? "" : ' style="border-top-color:var(--line)"'; first = false;
+      html += '<p class="dgh"' + st + '>' + g + ' — ' + arr.length + '명</p>';
+      if(g === "이상 없음" || g === "방송 거의 없음"){
+        html += '<div class="dgrow s1"><p class="dgp" style="color:var(--muted)">' +
+          arr.map(function(x){ return esc(x.r.name || ("@" + x.r.handle)); }).join(", ") + '</p></div>';
+      } else {
+        html += arr.map(card).join("");
+      }
+    });
     el.innerHTML = html;
   }
 
@@ -2054,18 +2086,18 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
       return row;
     });
 
-    var FLAG_W = {osea:1000, rising:500, days:300, loeff:100, conv:60, chance:1};
+    rows.forEach(function(r){ r._dg = diagnose(r); });
     rows.sort(function(a, b){
       if(rosterSort === "dia") return b.diamonds - a.diamonds;
       if(rosterSort === "flag"){
-        var pa = a.flags.reduce(function(s,f){ return s + (FLAG_W[f]||0); }, 0);
-        var pb = b.flags.reduce(function(s,f){ return s + (FLAG_W[f]||0); }, 0);
-        if(pb !== pa) return pb - pa;
+        var sa = a._dg ? a._dg.sev : 0, sb = b._dg ? b._dg.sev : 0;
+        if(sb !== sa) return sb - sa;
         return b.diamonds - a.diamonds;
       }
-      // eff: 낮은(문제) 순, 데이터 없으면 뒤로
+      // 효율 낮은 순 — 데이터 없으면 뒤로
       var ea = a.eff == null ? Infinity : a.eff, eb = b.eff == null ? Infinity : b.eff;
-      return ea - eb;
+      if(ea !== eb) return ea - eb;
+      return b.diamonds - a.diamonds;
     });
 
     renderRosterDiag(rows);
@@ -2104,8 +2136,9 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
     }).join("");
     $("rosterBody").innerHTML = html;
 
-    var probs = rows.filter(function(r){ return r.flags.length; }).length;
-    sum.textContent = keys.length + "명 · 플래그 " + probs + "명";
+    var urgent = rows.filter(function(r){ return r._dg && r._dg.sev >= 3; }).length;
+    var dormant = roster.total ? Math.max(0, roster.total - keys.length) : 0;
+    sum.textContent = "활동 " + keys.length + "명 · 지금 손봐야 " + urgent + "명" + (dormant ? " · 휴면 " + dormant + "명" : "");
   }
 
   $("rosterBtn").addEventListener("click", importRoster);
