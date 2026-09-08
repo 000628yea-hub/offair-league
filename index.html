@@ -807,11 +807,29 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
         </table>
       </div>
       <div class="rlegend" id="rLegend">
-        <span>🔴 <b>해외 고정</b> 해외 다이아 75%↑ — 알고리즘이 외국 피드로 타져 있음</span>
-        <span>🔺 <b>넘어가는 중</b> 해외 35~75% + 급증 — 지금이 한국으로 되돌릴 타이밍</span>
-        <span>🟠 <b>저효율</b> 시간당 3.5K 미만인데 방송 25h↑ — 시간만 태움</span>
-        <span>🟢 <b>기회</b> 시간당 10K↑인데 방송 20h 미만 or 유효일 7일 미만 — 시간 늘리면 큼</span>
+        <span>🌐 <b>해외 라인</b> 해외 다이아 50%↑ — 문제 아님, 대상 지역 최적화</span>
+        <span>🔺 <b>방향 흔들림</b> 한국 라인인데 해외 급증 + 다이아 정체</span>
+        <span>🟠 <b>저효율</b> 시간당 4K 미만 — 밀도(오프닝·선물유도) 문제</span>
+        <span>🟡 <b>전환 실패</b> 노출 큰데 시간당 낮음 — 시청자를 못 잡음</span>
+        <span>🟢 <b>기회</b> 효율 8K↑인데 방송 22h 미만 — 시간만 늘리면 승급권</span>
+        <span>⚫ <b>방송일 부족</b> 유효일 3일 이하</span>
       </div>
+
+      <details class="fold" id="lgGapFold" style="margin-top:20px">
+        <summary><h2>A리그 상위권과 뭐가 다른가</h2> <span class="savenote" id="lgGapSum"></span></summary>
+        <div class="panel"><div id="lgGapBody"></div></div>
+      </details>
+      <details class="fold" id="agencyFold">
+        <summary><h2>에이전시 — 이번 달 할 것</h2></summary>
+        <div class="panel">
+          <ul class="faq" style="grid-template-columns:1fr;border-top:0">
+            <li class="fcard" style="border-right:0;padding-left:0"><span class="tag">매치</span><h4>지역 간 매치 부활</h4><p>참여 <b>200명 → 18명(−91%)</b>. 매치 1건당 신규 해외 팔로워 4명, 매치 해외 다이아 114K(+73%). <b>한국 라인 ↔ 해외 라인을 섞는 유일한 수단</b> — 지금 죽어 있어서 두 라인이 완전히 분리됨.</p></li>
+            <li class="fcard" style="border-right:0;padding-left:0"><span class="tag">영상</span><h4>영상 업로드 독려</h4><p>주 4.28개(전월 3.97). 영상 유입 해외 시청자 4.05K(전월 815 → <b>+397%</b>). 영상→라이브 퍼널이 막 작동. 정체 그룹(ahjkm_ 등)에 특히 필요.</p></li>
+            <li class="fcard" style="border-right:0;padding-left:0"><span class="tag">시간대</span><h4>라인별 시간대 정리</h4><p>해외 라인은 대상 지역 피크(yooni=유럽밤/KST오전, joowondae=중동 KST 01–04시, mukdraeyo=동남아). 방향 흔들리는 jjjang.a·hoseok783는 <b>한국/해외 결정 후</b> 한쪽으로. 한국 라인은 KST 20–24시 사수.</p></li>
+            <li class="fcard" style="border-right:0;padding-left:0"><span class="tag">신인</span><h4>신인 트랙 분리</h4><p>(a) 노출 받는 골든타임 그룹은 집중 코칭, (b) 나머지는 &lsquo;첫 2주 최소 방송시간&rsquo; 계약부터. 지금은 둘 다 방치 — 휴면 189명 대부분이 온보딩 이탈.</p></li>
+          </ul>
+        </div>
+      </details>
     </div>
   </div>
 </section>
@@ -2066,6 +2084,47 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
     el.innerHTML = html;
   }
 
+  /* A리그 상위권 vs 우리 — cuts.json A1 랭킹 + hostDetail 로 라이브 계산 */
+  function renderLeagueGap(rows){
+    var body = $("lgGapBody"); if(!body) return;
+    var a1 = (cuts.A1 && cuts.A1.ranking || []).slice(0, 10);
+    var med = function(a){ a = a.filter(function(x){ return x > 0; }).sort(function(x,y){ return x - y; }); return a.length ? a[Math.floor(a.length/2)] : 0; };
+    var d30s = [], daysA = [];
+    a1.forEach(function(r){
+      var hd = hDetailCI(r.handle); if(!hd) return;
+      if(hd.d30) d30s.push(hd.d30);
+      var dd = (hd.days || []).filter(function(x){ return x.min > 0; });
+      if(dd.length) daysA.push(dd.length);
+    });
+    var a1d30 = med(d30s), a1days = med(daysA);
+    var ours = rows.filter(function(r){ return r.diamonds > 100000; }).sort(function(a,b){ return b.diamonds - a.diamonds; });
+    var top = ours[0];
+    var topHd = top ? hDetailCI(top.handle) : null;
+    if(!a1d30 || !top){ $("lgGapFold").hidden = true; return; }
+    $("lgGapFold").hidden = false;
+    $("lgGapSum").textContent = "우리 1위 vs A1 상위";
+    var K = fmtK;
+    var mult = (topHd && topHd.d30) ? Math.round(a1d30 / topHd.d30) : null;
+    var ourFreq = top.validDays ? Math.round(top.validDays / 6 * 100) : null;
+    var ourSess = top.validDays ? (top.hours / top.validDays).toFixed(1) : "?";
+    body.innerHTML =
+      '<div class="scroll" style="border:0"><table style="min-width:0"><thead><tr><th>구분</th><th>월 누적 다이아</th><th>방송 빈도</th><th>회당</th></tr></thead><tbody>' +
+        '<tr><td>A1 상위 8 중앙값</td><td class="hi">' + K(a1d30) + '</td><td class="hi">' + Math.round(a1days / 14 * 100) + '% (거의 매일)</td><td>~3.5h</td></tr>' +
+        '<tr><td>우리 ' + esc((top.name || top.handle)).slice(0,12) + (top.lg ? ' · ' + top.lg + ' ' + top.rank + '위' : '') + '</td>' +
+          '<td class="lo">' + (topHd && topHd.d30 ? K(topHd.d30) : "?") + '</td>' +
+          '<td class="lo">' + (ourFreq != null ? ourFreq + '%' : "?") + '</td>' +
+          '<td>' + ourSess + 'h</td></tr>' +
+      '</tbody></table></div>' +
+      '<p class="none" style="margin:0 0 12px"><b>회당 시간은 비슷한데(3.5h vs ' + ourSess + 'h)</b>, A1 상위는 거의 매일 켜서 월 누적이 ' +
+      (mult ? '<b>' + mult + '배</b>' : "몇 배") + ' 앞선다. 이게 곧 리그 순위 격차.</p>' +
+      '<ul class="faq" style="grid-template-columns:1fr;border-top:0">' +
+        '<li class="fcard" style="border-right:0;padding-left:0"><h4>① 성실성이 1순위</h4><p>하루 폭발력(효율)은 이미 A1급인데 <b>매일 안 켜서</b> 누적을 못 만든다.</p></li>' +
+        '<li class="fcard" style="border-right:0;padding-left:0"><h4>② 절대 방송량 주 10h 부족</h4><p>A1 = 하루 3–4h × 매일 = 주 25–30h. 우리 끌어올릴 그룹 = 주 16–19h.</p></li>' +
+        '<li class="fcard" style="border-right:0;padding-left:0"><h4>③ 애초에 해외로 안 샌다</h4><p>A1 상위는 전원 한국 팬덤·한국 시간대. 우리는 상위권에도 해외 라인이 섞여 있음.</p></li>' +
+        '<li class="fcard" style="border-right:0;padding-left:0"><h4>④ 팬덤 방어막이 없다</h4><p>A1엔 팔로워 100만+ 로 짧게 켜도 버티는 카드가 있음. 우리는 ggaoni(495K) 빼면 10만+ 가 없어 노출 빠지면 즉시 추락(hoseok783: 노출 −62%→다이아 −62%).</p></li>' +
+      '</ul>';
+  }
+
   function renderRoster(){
     var keys = Object.keys(roster.hosts);
     var ctl = $("rosterCtl"), wrap = $("rosterWrap"), empty = $("rosterEmpty"), sum = $("rosterSum");
@@ -2114,6 +2173,7 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
     });
 
     renderRosterDiag(rows);
+    renderLeagueGap(rows);
 
     var html = rows.map(function(r){
       var col = /^#[0-9a-fA-F]{3,8}$/.test(r.color || "") ? esc(r.color) : "var(--surface-2)";
