@@ -341,14 +341,14 @@ async function fetchTikdoCuts() {
   };
   const TK_URL = "https://tikdo.kr/api/league/cutoffs/compare";
   let json;
-  for (let attempt = 1; attempt <= 4; attempt++) {
+  for (let attempt = 1; attempt <= 3; attempt++) {
     try {
       const res = await fetch(TK_URL, { headers: hdrs, signal: AbortSignal.timeout(25000) });
       if (res.status === 401 || res.status === 403) {
         const body = await res.text().catch(() => "");
         if (/just a moment|cf-|challenge|attention required/i.test(body)) {
           // Cloudflare 봇 차단 — 재시도가 의미 있음
-          if (attempt < 4) { await sleep(4000 * attempt + Math.random() * 3000); continue; }
+          if (attempt < 3) { await sleep(4000 * attempt + Math.random() * 3000); continue; }
           console.log(`  틱두: Cloudflare 차단(${res.status}) — 이번엔 스킵, 틱플 폴백`);
         } else {
           console.log(`  틱두: 로그인 만료(${res.status}) — TIKDO_COOKIE 갱신 필요. 틱플 폴백`);
@@ -358,7 +358,7 @@ async function fetchTikdoCuts() {
       if (res.status === 429 || res.status === 502 || res.status === 503) {
         const ra = Number(res.headers.get("retry-after")) || 0;
         const wait = Math.min(45000, (ra ? ra * 1000 : 0) || 5000 * attempt + Math.random() * 4000);
-        if (attempt < 4) {
+        if (attempt < 3) {
           console.log(`  틱두: HTTP ${res.status} — ${Math.round(wait / 1000)}s 후 재시도 (${attempt}/3)`);
           await sleep(wait);
           continue;
@@ -370,7 +370,7 @@ async function fetchTikdoCuts() {
       json = await res.json();
       break;
     } catch (e) {
-      if (attempt < 4) { await sleep(3000 * attempt); continue; }
+      if (attempt < 3) { await sleep(3000 * attempt); continue; }
       console.log(`  틱두 수집 실패: ${e.message} — 틱플 폴백`);
       return {};
     }
@@ -558,6 +558,7 @@ async function runOnce() {
         sameTime: null,
         series: (old && old.series) || null,
         savedAt: stamp(started),
+        savedAtMs: Date.now(),
         source: "tikdo-cutoffs",
       };
       const gt = (f) => (tk.rows.find((x) => x.fragments === f) || {}).score;
@@ -567,8 +568,12 @@ async function runOnce() {
       continue;
     }
 
-    // 틱두 쿠키 만료 등으로 이번엔 못 받았지만 지난 실행이 틱두로 저장한 게 있으면 유지
-    if (old && typeof old.source === "string" && old.source.indexOf("tikdo") === 0 && old.rows) {
+    // 틱두 쿠키 만료 등으로 이번엔 못 받았지만, 지난 실행이 틱두로 저장한 게
+    // 아직 신선하면(30시간 이내) 유지. 오래됐으면 틱플 최신 컷으로 폴백.
+    if (
+      old && typeof old.source === "string" && old.source.indexOf("tikdo") === 0 && old.rows &&
+      old.savedAtMs && Date.now() - old.savedAtMs < 30 * 60 * 60 * 1000
+    ) {
       out[lg] = Object.assign({}, old, { ranking, rankingAt: stamp(started) });
       console.log(`  ${lg}: 틱두 컷 유지 (${old.savedAt}) · 랭킹만 갱신`);
       continue;
