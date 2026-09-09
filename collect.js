@@ -311,35 +311,45 @@ async function fetchCutoffs() {
   return bySub;
 }
 
-/* ── 1.5) 틱두 실시간 조각컷 (로그인 필요 · 환경변수 TIKDO_COOKIE) ──
+/* ── 1.5) 틱두 실시간 조각컷 ──
    tikdo.kr 는 리그 전체 인원 기준이라 유지·조각컷이 틱플(상위 99명 추정)보다 정확.
    /api/league/cutoffs/compare 가 today/yesterday 구간별 컷을 한 번에 준다.
    { "<class_type>": { today:[{league_tier_id,percentile,cutoff_score}], yesterday:[...] } }
-   쿠키 없음 → {}. 쿠키 만료(401) → {} (틱플 폴백). 형식이 바뀌면 조용히 폴백. */
+
+   두 가지 경로:
+   - TIKDO_ENDPOINT (Cloudflare Worker 프록시 URL, ?k= 포함) — GitHub Actions용.
+     GitHub 공용 IP가 tikdo Cloudflare에 429로 막혀서 Worker 엣지가 대신 호출.
+   - TIKDO_COOKIE (tikdo 로그인 쿠키) — 로컬 실행용(집 IP는 안 막힘).
+   둘 다 없으면 {} → 틱플 폴백. 실패해도 조용히 폴백. */
 const TK_FRAG = { 1: 3, 10: 2, 20: 1, 50: 0, 70: 0, 80: 0 };
 async function fetchTikdoCuts() {
+  const endpoint = (process.env.TIKDO_ENDPOINT || "").trim();
   const cookie = (process.env.TIKDO_COOKIE || "").trim();
-  if (!cookie) {
-    console.log("  틱두: TIKDO_COOKIE 없음 — 틱플 컷만 사용");
+  let TK_URL, hdrs;
+  if (endpoint) {
+    TK_URL = endpoint;
+    hdrs = { accept: "application/json" };
+  } else if (cookie) {
+    TK_URL = "https://tikdo.kr/api/league/cutoffs/compare";
+    hdrs = {
+      cookie,
+      "user-agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+      accept: "application/json, text/plain, */*",
+      "accept-language": "ko-KR,ko;q=0.9,en;q=0.8",
+      referer: "https://tikdo.kr/league/cutoffs",
+      origin: "https://tikdo.kr",
+      "sec-ch-ua": '"Chromium";v="128", "Not(A:Brand";v="24", "Google Chrome";v="128"',
+      "sec-ch-ua-mobile": "?0",
+      "sec-ch-ua-platform": '"Windows"',
+      "sec-fetch-dest": "empty",
+      "sec-fetch-mode": "cors",
+      "sec-fetch-site": "same-origin",
+    };
+  } else {
+    console.log("  틱두: TIKDO_ENDPOINT/COOKIE 둘 다 없음 — 틱플 컷만 사용");
     return {};
   }
-  const hdrs = {
-    cookie,
-    "user-agent":
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
-    accept: "application/json, text/plain, */*",
-    "accept-language": "ko-KR,ko;q=0.9,en;q=0.8",
-    "accept-encoding": "gzip, deflate, br",
-    referer: "https://tikdo.kr/league/cutoffs",
-    origin: "https://tikdo.kr",
-    "sec-ch-ua": '"Chromium";v="128", "Not(A:Brand";v="24", "Google Chrome";v="128"',
-    "sec-ch-ua-mobile": "?0",
-    "sec-ch-ua-platform": '"Windows"',
-    "sec-fetch-dest": "empty",
-    "sec-fetch-mode": "cors",
-    "sec-fetch-site": "same-origin",
-  };
-  const TK_URL = "https://tikdo.kr/api/league/cutoffs/compare";
   let json;
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
@@ -351,7 +361,8 @@ async function fetchTikdoCuts() {
           if (attempt < 3) { await sleep(4000 * attempt + Math.random() * 3000); continue; }
           console.log(`  틱두: Cloudflare 차단(${res.status}) — 이번엔 스킵, 틱플 폴백`);
         } else {
-          console.log(`  틱두: 로그인 만료(${res.status}) — TIKDO_COOKIE 갱신 필요. 틱플 폴백`);
+          const where = endpoint ? "Worker의 TIKDO_COOKIE" : "TIKDO_COOKIE";
+          console.log(`  틱두: 로그인 만료(${res.status}) — ${where} 갱신 필요. 틱플 폴백`);
         }
         return {};
       }
