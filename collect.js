@@ -323,27 +323,59 @@ async function fetchTikdoCuts() {
     console.log("  틱두: TIKDO_COOKIE 없음 — 틱플 컷만 사용");
     return {};
   }
+  const hdrs = {
+    cookie,
+    "user-agent":
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+    accept: "application/json, text/plain, */*",
+    "accept-language": "ko-KR,ko;q=0.9,en;q=0.8",
+    "accept-encoding": "gzip, deflate, br",
+    referer: "https://tikdo.kr/league/cutoffs",
+    origin: "https://tikdo.kr",
+    "sec-ch-ua": '"Chromium";v="128", "Not(A:Brand";v="24", "Google Chrome";v="128"',
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": '"Windows"',
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin",
+  };
+  const TK_URL = "https://tikdo.kr/api/league/cutoffs/compare";
   let json;
-  try {
-    const res = await fetch("https://tikdo.kr/api/league/cutoffs/compare", {
-      headers: {
-        cookie,
-        "user-agent": UA["user-agent"],
-        accept: "application/json",
-        referer: "https://tikdo.kr/league/cutoffs",
-      },
-      signal: AbortSignal.timeout(20000),
-    });
-    if (res.status === 401 || res.status === 403) {
-      console.log(`  틱두: 로그인 만료(${res.status}) — TIKDO_COOKIE 갱신 필요. 틱플 폴백`);
+  for (let attempt = 1; attempt <= 4; attempt++) {
+    try {
+      const res = await fetch(TK_URL, { headers: hdrs, signal: AbortSignal.timeout(25000) });
+      if (res.status === 401 || res.status === 403) {
+        const body = await res.text().catch(() => "");
+        if (/just a moment|cf-|challenge|attention required/i.test(body)) {
+          // Cloudflare 봇 차단 — 재시도가 의미 있음
+          if (attempt < 4) { await sleep(4000 * attempt + Math.random() * 3000); continue; }
+          console.log(`  틱두: Cloudflare 차단(${res.status}) — 이번엔 스킵, 틱플 폴백`);
+        } else {
+          console.log(`  틱두: 로그인 만료(${res.status}) — TIKDO_COOKIE 갱신 필요. 틱플 폴백`);
+        }
+        return {};
+      }
+      if (res.status === 429 || res.status === 502 || res.status === 503) {
+        const ra = Number(res.headers.get("retry-after")) || 0;
+        const wait = Math.min(45000, (ra ? ra * 1000 : 0) || 5000 * attempt + Math.random() * 4000);
+        if (attempt < 4) {
+          console.log(`  틱두: HTTP ${res.status} — ${Math.round(wait / 1000)}s 후 재시도 (${attempt}/3)`);
+          await sleep(wait);
+          continue;
+        }
+        console.log(`  틱두: HTTP ${res.status} 지속 — 이번엔 스킵, 틱플 폴백`);
+        return {};
+      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      json = await res.json();
+      break;
+    } catch (e) {
+      if (attempt < 4) { await sleep(3000 * attempt); continue; }
+      console.log(`  틱두 수집 실패: ${e.message} — 틱플 폴백`);
       return {};
     }
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    json = await res.json();
-  } catch (e) {
-    console.log(`  틱두 수집 실패: ${e.message} — 틱플 폴백`);
-    return {};
   }
+  if (!json) return {};
 
   const byLg = {};
   const take = (rows, side) => {
