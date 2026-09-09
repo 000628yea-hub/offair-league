@@ -355,8 +355,8 @@ async function fetchTikdoCuts() {
       const s = Number(r.cutoff_score);
       if (!isFinite(s)) continue;
       byLg[lg] = byLg[lg] || { today: {}, prev: {} };
-      if (side === "today") byLg[lg].today[f] = { pct: r.percentile / 100, score: s };
-      else byLg[lg].prev["f" + f] = s;
+      if (side === "today") byLg[lg].today[f] = { pct: r.percentile / 100, score: Math.round(s) };
+      else byLg[lg].prev["f" + f] = Math.round(s);
     }
   };
   for (const ct of Object.keys(json || {})) {
