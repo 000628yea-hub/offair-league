@@ -50,7 +50,7 @@ jobs:
       - name: 데이터 수집
         env:
           TIKDO_COOKIE: ${{ secrets.TIKDO_COOKIE }}
-        run: node collect.js --photos 400 || echo "::warning::collect.js 실패 — 이전 데이터로 배포합니다"
+        run: node collect.js --photos 80 || echo "::warning::collect.js 실패 — 이전 데이터로 배포합니다"
 
       - name: 데이터 캐시 저장
         if: always()
