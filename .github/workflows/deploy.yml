@@ -44,8 +44,12 @@ jobs:
           restore-keys: |
             offair-data-
 
-      # tikple 랭킹·사진·호스트 상세 수집. 실패해도 배포는 계속(캐시/시드 데이터 사용)
+      # tikple 랭킹·사진·호스트 상세 + 틱두 실시간 컷 수집. 실패해도 배포는 계속.
+      # TIKDO_COOKIE: tikdo.kr 로그인 세션. Settings → Secrets → Actions 에 등록.
+      #   없거나 만료되면 틱두 컷만 건너뛰고 틱플 폴백으로 배포됨.
       - name: 데이터 수집
+        env:
+          TIKDO_COOKIE: ${{ secrets.TIKDO_COOKIE }}
         run: node collect.js --photos 400 || echo "::warning::collect.js 실패 — 이전 데이터로 배포합니다"
 
       - name: 데이터 캐시 저장

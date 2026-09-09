@@ -311,6 +311,74 @@ async function fetchCutoffs() {
   return bySub;
 }
 
+/* ── 1.5) 틱두 실시간 조각컷 (로그인 필요 · 환경변수 TIKDO_COOKIE) ──
+   tikdo.kr 는 리그 전체 인원 기준이라 유지·조각컷이 틱플(상위 99명 추정)보다 정확.
+   /api/league/cutoffs/compare 가 today/yesterday 구간별 컷을 한 번에 준다.
+   { "<class_type>": { today:[{league_tier_id,percentile,cutoff_score}], yesterday:[...] } }
+   쿠키 없음 → {}. 쿠키 만료(401) → {} (틱플 폴백). 형식이 바뀌면 조용히 폴백. */
+const TK_FRAG = { 1: 3, 10: 2, 20: 1, 50: 0, 70: 0, 80: 0 };
+async function fetchTikdoCuts() {
+  const cookie = (process.env.TIKDO_COOKIE || "").trim();
+  if (!cookie) {
+    console.log("  틱두: TIKDO_COOKIE 없음 — 틱플 컷만 사용");
+    return {};
+  }
+  let json;
+  try {
+    const res = await fetch("https://tikdo.kr/api/league/cutoffs/compare", {
+      headers: {
+        cookie,
+        "user-agent": UA["user-agent"],
+        accept: "application/json",
+        referer: "https://tikdo.kr/league/cutoffs",
+      },
+      signal: AbortSignal.timeout(20000),
+    });
+    if (res.status === 401 || res.status === 403) {
+      console.log(`  틱두: 로그인 만료(${res.status}) — TIKDO_COOKIE 갱신 필요. 틱플 폴백`);
+      return {};
+    }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    json = await res.json();
+  } catch (e) {
+    console.log(`  틱두 수집 실패: ${e.message} — 틱플 폴백`);
+    return {};
+  }
+
+  const byLg = {};
+  const take = (rows, side) => {
+    for (const r of rows || []) {
+      const lg = String(r.league_tier_id || "").toUpperCase();
+      if (!/^[A-D][1-5]$/.test(lg)) continue;
+      const f = TK_FRAG[r.percentile];
+      if (f === undefined) continue;
+      const s = Number(r.cutoff_score);
+      if (!isFinite(s)) continue;
+      byLg[lg] = byLg[lg] || { today: {}, prev: {} };
+      if (side === "today") byLg[lg].today[f] = { pct: r.percentile / 100, score: s };
+      else byLg[lg].prev["f" + f] = s;
+    }
+  };
+  for (const ct of Object.keys(json || {})) {
+    take(json[ct] && json[ct].today, "today");
+    take(json[ct] && json[ct].yesterday, "yesterday");
+  }
+
+  const out = {};
+  for (const lg of Object.keys(byLg)) {
+    const t = byLg[lg];
+    const frags = Object.keys(t.today).map(Number).sort((a, b) => b - a);
+    if (!frags.length) continue;
+    out[lg] = {
+      rows: frags.map((f) => ({ pct: t.today[f].pct, fragments: f, score: t.today[f].score })),
+      prev: Object.keys(t.prev).length ? t.prev : null,
+      top: (t.today[3] && t.today[3].score) || t.today[frags[0]].score,
+    };
+  }
+  console.log(`  틱두 실시간 컷 ok (${Object.keys(out).length}개 리그)`);
+  return out;
+}
+
 /* ── 2) 틱플 티어 랭킹 페이지에서 서브리그별 호스트 목록 ──
    ?league=XX 를 붙여야 그 티어 전 서브리그(각 99명)가 서버에서 완전히 렌더된다.
    안 붙이면 접속 시점 라이브 호스트 위주로만 나와 A2·B2 등이 12명씩만 옴. */
@@ -383,6 +451,9 @@ async function runOnce() {
     return;
   }
 
+  // 틱두 실시간 컷 (정확) — 있으면 리그별로 틱플 컷을 대체
+  const tikdo = await fetchTikdoCuts();
+
   // 티어별 랭킹 (부가 정보 — 실패해도 컷은 저장)
   const hostsBySub = {};
   for (const L of LETTERS) {
@@ -439,8 +510,32 @@ async function runOnce() {
       ranking = old.ranking;
     }
 
-    // 이전에 틱두(정확)로 저장한 컷이 있으면 rows/prev 를 건드리지 않고
-    // 랭킹 목록만 갱신한다. 없으면 틱플 컷을 fallback 으로.
+    // 이번 실행에서 틱두 실시간 컷을 받았으면 그걸로 저장 (틱플보다 정확)
+    const tk = tikdo[lg];
+    if (tk) {
+      out[lg] = {
+        league: lg,
+        tier: lg[0],
+        count: c.count != null ? c.count : (old && old.count) || 99,
+        top: tk.top,
+        median: c.median != null ? c.median : (old && old.median) || null,
+        ranking,
+        rankingAt: stamp(started),
+        rows: tk.rows,
+        prev: tk.prev,
+        sameTime: null,
+        series: (old && old.series) || null,
+        savedAt: stamp(started),
+        source: "tikdo-cutoffs",
+      };
+      const gt = (f) => (tk.rows.find((x) => x.fragments === f) || {}).score;
+      console.log(
+        `  ${lg}: 틱두 실시간 · +3 ${kfmt(tk.top)} · +2 ${kfmt(gt(2))} · +1 ${kfmt(gt(1))} · 유지 ${kfmt(gt(0))}`
+      );
+      continue;
+    }
+
+    // 틱두 쿠키 만료 등으로 이번엔 못 받았지만 지난 실행이 틱두로 저장한 게 있으면 유지
     if (old && typeof old.source === "string" && old.source.indexOf("tikdo") === 0 && old.rows) {
       out[lg] = Object.assign({}, old, { ranking, rankingAt: stamp(started) });
       console.log(`  ${lg}: 틱두 컷 유지 (${old.savedAt}) · 랭킹만 갱신`);
