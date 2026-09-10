@@ -318,7 +318,7 @@ async function fetchCutoffs() {
 
    tikdo 는 Vercel 봇 차단이 있어 데이터센터 IP(GitHub·Cloudflare)는 429로 막힌다.
    경로 우선순위:
-   1. tikdo-cuts.json — 브라우저 유저스크립트(scripts/tikdo-userscript.js)가
+   1. tikdo-cuts.json — 브라우저 유저스크립트(scripts/tikdo-userscript.user.js)가
       형 세션·집 IP로 긁어 커밋해 둔 파일. 72h 이내면 이걸 쓴다. (기본 경로)
    2. TIKDO_ENDPOINT (Cloudflare Worker 프록시) / TIKDO_COOKIE (직접) — 대개 429.
    전부 실패하면 {} → 틱플 폴백. */
