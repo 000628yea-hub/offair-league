@@ -44,13 +44,11 @@ jobs:
           restore-keys: |
             offair-data-
 
-      # tikple 랭킹·사진·호스트 상세 + 틱두 실시간 컷 수집. 실패해도 배포는 계속.
-      # TIKDO_ENDPOINT: Cloudflare Worker 프록시 URL (?k= 포함). worker/tikdo-proxy.js 참고.
-      #   GitHub 공용 IP는 tikdo Cloudflare에 429로 막혀서 Worker 경유가 필요함.
-      #   없거나 만료되면 틱두 컷만 건너뛰고 틱플 폴백으로 배포됨.
+      # tikple 랭킹·사진·호스트 상세 수집 + 틱두 컷 병합. 실패해도 배포는 계속.
+      # 틱두 실시간 컷은 브라우저 유저스크립트(scripts/tikdo-userscript.js)가
+      # tikdo-cuts.json 으로 커밋해 두고, collect.js 가 그 파일을 읽어 병합한다.
+      # (tikdo 는 Vercel 봇차단이라 GitHub·Worker 등 데이터센터 IP로는 못 긁음)
       - name: 데이터 수집
-        env:
-          TIKDO_ENDPOINT: ${{ secrets.TIKDO_ENDPOINT }}
         run: node collect.js --photos 80 || echo "::warning::collect.js 실패 — 이전 데이터로 배포합니다"
 
       - name: 데이터 캐시 저장

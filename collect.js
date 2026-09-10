@@ -313,16 +313,71 @@ async function fetchCutoffs() {
 
 /* ── 1.5) 틱두 실시간 조각컷 ──
    tikdo.kr 는 리그 전체 인원 기준이라 유지·조각컷이 틱플(상위 99명 추정)보다 정확.
-   /api/league/cutoffs/compare 가 today/yesterday 구간별 컷을 한 번에 준다.
+   /api/league/cutoffs/compare 가 today/yesterday 구간별 컷을 한 번에 준다:
    { "<class_type>": { today:[{league_tier_id,percentile,cutoff_score}], yesterday:[...] } }
 
-   두 가지 경로:
-   - TIKDO_ENDPOINT (Cloudflare Worker 프록시 URL, ?k= 포함) — GitHub Actions용.
-     GitHub 공용 IP가 tikdo Cloudflare에 429로 막혀서 Worker 엣지가 대신 호출.
-   - TIKDO_COOKIE (tikdo 로그인 쿠키) — 로컬 실행용(집 IP는 안 막힘).
-   둘 다 없으면 {} → 틱플 폴백. 실패해도 조용히 폴백. */
+   tikdo 는 Vercel 봇 차단이 있어 데이터센터 IP(GitHub·Cloudflare)는 429로 막힌다.
+   경로 우선순위:
+   1. tikdo-cuts.json — 브라우저 유저스크립트(scripts/tikdo-userscript.js)가
+      형 세션·집 IP로 긁어 커밋해 둔 파일. 72h 이내면 이걸 쓴다. (기본 경로)
+   2. TIKDO_ENDPOINT (Cloudflare Worker 프록시) / TIKDO_COOKIE (직접) — 대개 429.
+   전부 실패하면 {} → 틱플 폴백. */
 const TK_FRAG = { 1: 3, 10: 2, 20: 1, 50: 0, 70: 0, 80: 0 };
+const TKFILE = path.join(__dirname, "tikdo-cuts.json");
+
+/* compare API 응답(json) → { LG: {rows,prev,top} } */
+function parseTikdoCompare(json) {
+  const byLg = {};
+  const take = (rows, side) => {
+    for (const r of rows || []) {
+      const lg = String(r.league_tier_id || "").toUpperCase();
+      if (!/^[A-D][1-5]$/.test(lg)) continue;
+      const f = TK_FRAG[r.percentile];
+      if (f === undefined) continue;
+      const s = Number(r.cutoff_score);
+      if (!isFinite(s)) continue;
+      byLg[lg] = byLg[lg] || { today: {}, prev: {} };
+      if (side === "today") byLg[lg].today[f] = { pct: r.percentile / 100, score: Math.round(s) };
+      else byLg[lg].prev["f" + f] = Math.round(s);
+    }
+  };
+  for (const ct of Object.keys(json || {})) {
+    take(json[ct] && json[ct].today, "today");
+    take(json[ct] && json[ct].yesterday, "yesterday");
+  }
+  const out = {};
+  for (const lg of Object.keys(byLg)) {
+    const t = byLg[lg];
+    const frags = Object.keys(t.today).map(Number).sort((a, b) => b - a);
+    if (!frags.length) continue;
+    out[lg] = {
+      rows: frags.map((f) => ({ pct: t.today[f].pct, fragments: f, score: t.today[f].score })),
+      prev: Object.keys(t.prev).length ? t.prev : null,
+      top: (t.today[3] && t.today[3].score) || t.today[frags[0]].score,
+    };
+  }
+  return out;
+}
+
+/* 유저스크립트가 커밋해둔 tikdo-cuts.json 읽기 ({savedAtMs, compare}) */
+function loadTikdoFile() {
+  let raw;
+  try { raw = JSON.parse(fs.readFileSync(TKFILE, "utf8")); } catch (e) { return null; }
+  const ageH = (Date.now() - (raw.savedAtMs || 0)) / 3600000;
+  if (!raw.compare || ageH > 72) {
+    if (raw.savedAtMs) console.log(`  틱두 파일: ${Math.round(ageH)}h 지나 무시 (틱플 폴백)`);
+    return null;
+  }
+  const parsed = parseTikdoCompare(raw.compare);
+  if (!Object.keys(parsed).length) return null;
+  console.log(`  틱두 파일: ${Object.keys(parsed).length}개 리그 (유저스크립트 · ${ageH < 1 ? "1시간 내" : Math.round(ageH) + "h 전"})`);
+  return parsed;
+}
+
 async function fetchTikdoCuts() {
+  const fromFile = loadTikdoFile();
+  if (fromFile) return fromFile;
+
   const endpoint = (process.env.TIKDO_ENDPOINT || "").trim();
   const cookie = (process.env.TIKDO_COOKIE || "").trim();
   let TK_URL, hdrs;
@@ -388,37 +443,8 @@ async function fetchTikdoCuts() {
   }
   if (!json) return {};
 
-  const byLg = {};
-  const take = (rows, side) => {
-    for (const r of rows || []) {
-      const lg = String(r.league_tier_id || "").toUpperCase();
-      if (!/^[A-D][1-5]$/.test(lg)) continue;
-      const f = TK_FRAG[r.percentile];
-      if (f === undefined) continue;
-      const s = Number(r.cutoff_score);
-      if (!isFinite(s)) continue;
-      byLg[lg] = byLg[lg] || { today: {}, prev: {} };
-      if (side === "today") byLg[lg].today[f] = { pct: r.percentile / 100, score: Math.round(s) };
-      else byLg[lg].prev["f" + f] = Math.round(s);
-    }
-  };
-  for (const ct of Object.keys(json || {})) {
-    take(json[ct] && json[ct].today, "today");
-    take(json[ct] && json[ct].yesterday, "yesterday");
-  }
-
-  const out = {};
-  for (const lg of Object.keys(byLg)) {
-    const t = byLg[lg];
-    const frags = Object.keys(t.today).map(Number).sort((a, b) => b - a);
-    if (!frags.length) continue;
-    out[lg] = {
-      rows: frags.map((f) => ({ pct: t.today[f].pct, fragments: f, score: t.today[f].score })),
-      prev: Object.keys(t.prev).length ? t.prev : null,
-      top: (t.today[3] && t.today[3].score) || t.today[frags[0]].score,
-    };
-  }
-  console.log(`  틱두 실시간 컷 ok (${Object.keys(out).length}개 리그)`);
+  const out = parseTikdoCompare(json);
+  console.log(`  틱두 실시간 컷 ok (${Object.keys(out).length}개 리그 · 직접호출)`);
   return out;
 }
 
