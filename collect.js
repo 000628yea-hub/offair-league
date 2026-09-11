@@ -371,6 +371,7 @@ function loadTikdoFile() {
   const parsed = parseTikdoCompare(raw.compare);
   if (!Object.keys(parsed).length) return null;
   console.log(`  틱두 파일: ${Object.keys(parsed).length}개 리그 (유저스크립트 · ${ageH < 1 ? "1시간 내" : Math.round(ageH) + "h 전"})`);
+  parsed.__sourceAtMs = raw.savedAtMs; // 실제 유저스크립트가 긁은 시각 (표시용)
   return parsed;
 }
 
@@ -582,6 +583,9 @@ async function runOnce() {
     // 이번 실행에서 틱두 실시간 컷을 받았으면 그걸로 저장 (틱플보다 정확)
     const tk = tikdo[lg];
     if (tk) {
+      // 유저스크립트 파일 경로면 실제로 긁힌 시각을 표시(재실행마다 "방금"으로
+      // 덮어써지면 안 됨). 직접호출/Worker 경로면 지금이 곧 그 시각.
+      const srcMs = tikdo.__sourceAtMs || Date.now();
       out[lg] = {
         league: lg,
         tier: lg[0],
@@ -594,8 +598,8 @@ async function runOnce() {
         prev: tk.prev,
         sameTime: null,
         series: (old && old.series) || null,
-        savedAt: stamp(started),
-        savedAtMs: Date.now(),
+        savedAt: stamp(new Date(srcMs)),
+        savedAtMs: srcMs,
         source: "tikdo-cutoffs",
       };
       const gt = (f) => (tk.rows.find((x) => x.fragments === f) || {}).score;
