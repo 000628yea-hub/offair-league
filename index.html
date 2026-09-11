@@ -1857,16 +1857,10 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
     return out;
   }
 
-  function importRoster(){
-    var note = $("rosterNote");
-    var a = parseBackstage($("bsCreator").value);
-    var o = parseOverseas($("bsOversea").value);
-    if(!a.length && !o.length){
-      note.textContent = "읽을 수 있는 호스트를 못 찾았습니다. 표 전체(닉네임·ID 포함)를 복사했는지 확인하세요.";
-      return;
-    }
-    var tm = $("bsCreator").value.match(/(\d+)\s*중\s*\d+/);
-    if(tm) roster.total = parseInt(tm[1], 10);
+  /* a(크리에이터 데이터)·o(해외 분석) 파싱 결과를 roster.hosts 에 병합.
+     붙여넣기(importRoster)·원격 자동수집(applyRemoteRoster) 공용. */
+  function mergeRosterData(a, o, totalHint){
+    if(totalHint) roster.total = totalHint;
     var added = 0, updated = 0;
     a.forEach(function(h){
       var key = normHandle(h.handle);
@@ -1899,13 +1893,47 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
     });
     roster.at = Date.now();
     saveRoster();
+    return {added:added, updated:updated, oMatched:oMatched};
+  }
+
+  function importRoster(){
+    var note = $("rosterNote");
+    var a = parseBackstage($("bsCreator").value);
+    var o = parseOverseas($("bsOversea").value);
+    if(!a.length && !o.length){
+      note.textContent = "읽을 수 있는 호스트를 못 찾았습니다. 표 전체(닉네임·ID 포함)를 복사했는지 확인하세요.";
+      return;
+    }
+    var tm = $("bsCreator").value.match(/(\d+)\s*중\s*\d+/);
+    var r = mergeRosterData(a, o, tm ? parseInt(tm[1], 10) : null);
     var msg = [];
-    if(added) msg.push("추가 " + added);
-    if(updated) msg.push("갱신 " + updated);
-    if(o.length) msg.push("해외분석 " + oMatched + "/" + o.length + " 매칭");
+    if(r.added) msg.push("추가 " + r.added);
+    if(r.updated) msg.push("갱신 " + r.updated);
+    if(o.length) msg.push("해외분석 " + r.oMatched + "/" + o.length + " 매칭");
     note.textContent = msg.join(" · ") + " 완료";
     $("bsCreator").value = ""; $("bsOversea").value = "";
     renderRoster();
+  }
+
+  /* 유저스크립트(scripts/backstage-userscript.user.js)가 커밋해둔
+     data/backstage-creator-data.json 자동 반영 — 붙여넣기보다 최신일 때만. */
+  function applyRemoteRoster(data){
+    if(!data || !data.text || !data.savedAtMs) return;
+    if(roster.at && roster.at >= data.savedAtMs) return; // 이미 더 최신(수동 붙여넣기 등)
+    var a = parseBackstage(data.text);
+    if(!a.length) return;
+    var tm = data.text.match(/(\d+)\s*중\s*\d+/);
+    mergeRosterData(a, [], tm ? parseInt(tm[1], 10) : null);
+    roster.at = data.savedAtMs; // 병합 시각이 아니라 실제 수집 시각으로
+    saveRoster();
+    renderRoster();
+  }
+  function loadRemoteRoster(){
+    if(typeof fetch !== "function") return;
+    fetch("data/backstage-creator-data.json?t=" + Date.now(), {cache:"no-store"})
+      .then(function(r){ return r && r.ok ? r.json() : null; })
+      .then(applyRemoteRoster)
+      .catch(function(){});
   }
 
   function rEntryCI(handle){
@@ -2616,6 +2644,7 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
 
   loadRemoteCuts();
   loadRemoteHosts();
+  loadRemoteRoster();
   setInterval(loadRemoteCuts, 5 * 60 * 1000);
   setInterval(loadRemoteHosts, 5 * 60 * 1000);
 })();

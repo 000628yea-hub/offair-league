@@ -64,6 +64,8 @@ jobs:
           cp index.html _site/
           cp robots.txt _site/ 2>/dev/null || true
           cp -r data/. _site/data/ 2>/dev/null || true
+          # 백스테이지 유저스크립트가 저장소 루트에 커밋해둔 파일 (data/ 캐시 클로버 방지용)
+          cp backstage-creator-data.json _site/data/ 2>/dev/null || true
           touch _site/.nojekyll
 
       - name: Pages 아티팩트 업로드
