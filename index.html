@@ -807,6 +807,11 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
       <div id="rosterOverview"></div>
       <div id="rosterDiag"></div>
 
+      <div class="dgsec" id="hiSec" hidden>
+        <p class="dgh">하이라이트</p>
+        <div id="hiBody"></div>
+      </div>
+
       <div class="dgsec" id="gradSec" hidden>
         <p class="dgh">졸업 트래커 <span id="gradSum"></span></p>
         <div id="gradBody"></div>
@@ -2172,6 +2177,55 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
     el.innerHTML = html;
   }
 
+  /* 하이라이트 — 효율 최고/최저, 전월 대비 하락, 동급 타사 대비 격차 (diagnose()가 채운 r._dg.compare 재사용) */
+  function renderHighlights(rows){
+    var sec = $("hiSec"), body = $("hiBody");
+    if(!sec || !body) return;
+    var K = fmtK;
+    function nm(r){ return esc(r.name || ("@" + r.handle)); }
+    function list(arr, fn){
+      if(!arr.length) return '<p class="none" style="margin:0;color:var(--muted);font-size:12.5px">데이터 부족</p>';
+      return '<ol style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px">' +
+        arr.map(function(r, i){
+          return '<li data-handle="' + esc(r.handle) + '" tabindex="0" style="display:flex;justify-content:space-between;gap:10px;font-size:13px;cursor:pointer;align-items:baseline">' +
+            '<span style="color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (i + 1) + '. ' + nm(r) + '</span>' +
+            fn(r) + '</li>';
+        }).join("") + '</ol>';
+    }
+
+    var withEff = rows.filter(function(r){ return r.eff != null && r.hours >= 3; });
+    var top = withEff.slice().sort(function(a, b){ return b.eff - a.eff; }).slice(0, 3);
+    var bottom = withEff.slice().sort(function(a, b){ return a.eff - b.eff; }).slice(0, 3);
+
+    var dropped = rows.filter(function(r){ return r.diamondsMom != null && r.diamondsMom < 0 && r.diamonds > 10000; })
+      .sort(function(a, b){ return a.diamondsMom - b.diamondsMom; }).slice(0, 3);
+
+    var gaps = rows.filter(function(r){ return r._dg && r._dg.compare; })
+      .sort(function(a, b){ return (b._dg.sev - a._dg.sev) || (b.diamonds - a.diamonds); }).slice(0, 3);
+
+    if(!withEff.length && !dropped.length && !gaps.length){ sec.hidden = true; return; }
+    sec.hidden = false;
+
+    body.innerHTML = '<ul class="faq" style="border-top:0">' +
+      '<li class="fcard"><span class="tag">⚡ 효율 최고</span><h4>시간당 다이아 상위</h4>' +
+        list(top, function(r){ return '<b style="font-family:\'IBM Plex Mono\',monospace;flex:none">' + K(Math.round(r.eff)) + '/h</b>'; }) + '</li>' +
+      '<li class="fcard"><span class="tag">🐢 효율 최저</span><h4>시간당 다이아 하위</h4>' +
+        list(bottom, function(r){ return '<b style="font-family:\'IBM Plex Mono\',monospace;flex:none;color:var(--danger)">' + K(Math.round(r.eff)) + '/h</b>'; }) + '</li>' +
+      '<li class="fcard"><span class="tag">📉 전월 대비 하락</span><h4>다이아 하락폭 큰 순</h4>' +
+        list(dropped, function(r){ return '<b style="font-family:\'IBM Plex Mono\',monospace;flex:none;color:var(--danger)">' + Math.round(r.diamondsMom * 100) + '%</b>'; }) + '</li>' +
+      '<li class="fcard"><span class="tag">⚠️ 동급 타사 대비</span><h4>격차 있는 순</h4>' +
+        (gaps.length
+          ? '<ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px">' +
+            gaps.map(function(r){
+              return '<li data-handle="' + esc(r.handle) + '" tabindex="0" style="cursor:pointer">' +
+                '<div style="font-size:13px;color:var(--ink-2)">' + nm(r) + '</div>' +
+                '<div style="font-size:11px;color:var(--muted);margin-top:2px">' + esc(r._dg.compare) + '</div></li>';
+            }).join("") + '</ul>'
+          : '<p class="none" style="margin:0;color:var(--muted);font-size:12.5px">비교 가능한 데이터 없음(월 3만 다이아 이상부터 집계)</p>') +
+      '</li>' +
+    '</ul>';
+  }
+
   var med = function(a){ a = a.filter(function(x){ return x > 0; }).sort(function(x,y){ return x - y; }); return a.length ? a[Math.floor(a.length/2)] : 0; };
   /* 필드(수집한 타사·개인 hostDetail)에서 월다이아 밴드 코호트의 프로필 */
   function fieldCohort(loD, hiD){
@@ -2346,6 +2400,7 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
     });
 
     renderRosterDiag(rows);
+    renderHighlights(rows);
     renderGraduation(rows);
     renderNewcomers(rows);
     renderBrackets(rows);
@@ -2416,7 +2471,7 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
     var tr = ev.target.closest("tr[data-handle]");
     if(tr){ ev.preventDefault(); openHost(tr.getAttribute("data-handle")); }
   });
-  ["rosterDiag","gradBody","newcBody"].forEach(function(id){
+  ["rosterDiag","hiBody","gradBody","newcBody"].forEach(function(id){
     var box = $(id); if(!box) return;
     box.addEventListener("click", function(ev){
       if(ev.target.closest(".dgmore")){ try{ $("rosterTableFold").scrollIntoView({behavior:"smooth"}); }catch(e){} return; }
