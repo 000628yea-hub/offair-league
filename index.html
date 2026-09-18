@@ -794,6 +794,11 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
           <textarea id="bsOversea" placeholder="백스테이지 › 데이터 › 해외 분석 → ‘해외에서 잠재력이 높은 크리에이터’ 표 부분을 복사해 붙여넣기" style="min-height:110px"></textarea>
           <span class="hint">해외 고정 호스트의 주요 지역(브라질·중동·태국 등)을 채웁니다.</span>
         </div>
+        <div class="field">
+          <label for="bsDays">③ 수집 기간(일) <span style="color:var(--muted);font-weight:400">백스테이지에서 고른 기간이 며칠인지</span></label>
+          <input type="number" id="bsDays" min="1" max="31" value="6" style="max-width:100px">
+          <span class="hint">"이번 주"=6~7일, "이번 달"=오늘까지 날짜 수. 월 환산(다이아÷기간×30) 계산에 씁니다 — 틀리면 "이번 주 페이스" 숫자가 다 틀어져요.</span>
+        </div>
         <div class="cutbar">
           <button class="btn" type="button" id="rosterBtn">불러오기</button>
           <button class="btn ghost" type="button" id="rosterClear">전체 지우기</button>
@@ -1911,6 +1916,7 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
       return;
     }
     var tm = $("bsCreator").value.match(/(\d+)\s*중\s*\d+/);
+    roster.days = parseInt($("bsDays").value, 10) || 6;
     var r = mergeRosterData(a, o, tm ? parseInt(tm[1], 10) : null);
     var msg = [];
     if(r.added) msg.push("추가 " + r.added);
@@ -2005,7 +2011,7 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
   function diagnose(r){
     var d = Math.round(r.diamonds), h = r.hours || 0, e = r.eff, days = r.validDays || 0;
     var os = r.overseasRatio, osM = r.overseasMom, dM = r.diamondsMom;
-    var monthly = d / 6 * 30;
+    var monthly = d / (roster.days || 6) * 30;
     var reg = (r.regions && r.regions.length) ? r.regions.slice(0,2).join("·") : "외국";
     var K = function(n){ return fmtK(Math.round(n)); };
     var rookie = /미졸업|미도달/.test(r.status || "");
@@ -2261,14 +2267,14 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
       { lo: 150000, hi: 400000, lbl: "월 150K–400K" }
     ];
     var out = '<div class="scroll" style="border:0"><table style="min-width:540px"><thead><tr>' +
-      '<th>구간</th><th>호스트</th><th>이번 주 페이스<br>(월 환산)</th><th>실제 지난 30일<br>(d30)</th><th>필드 동급 d30</th></tr></thead><tbody>';
+      '<th>구간</th><th>호스트</th><th>최근 ' + (roster.days || 6) + '일 페이스<br>(월 환산)</th><th>실제 지난 30일<br>(d30)</th><th>필드 동급 d30</th></tr></thead><tbody>';
     if(a1med) out += '<tr><td><b>A1 상위 8</b></td><td class="rname" style="font-family:inherit;color:var(--muted)">기준선</td><td>—</td><td class="hi">' + K(a1med) + '</td><td>매일 방송</td></tr>';
     BANDS.forEach(function(b){
-      var ours = rows.filter(function(r){ var m = r.diamonds/6*30; return m >= b.lo && m < b.hi && r.diamonds > 20000; })
+      var ours = rows.filter(function(r){ var m = r.diamonds/(roster.days||6)*30; return m >= b.lo && m < b.hi && r.diamonds > 20000; })
         .sort(function(x,y){ return y.diamonds - x.diamonds; });
       if(!ours.length) return;
       var co = fieldCohort(b.lo * 0.7, b.hi * 1.3);
-      var ourMonthly = med(ours.map(function(r){ return r.diamonds/6*30; }));
+      var ourMonthly = med(ours.map(function(r){ return r.diamonds/(roster.days||6)*30; }));
       var d30vals = ours.map(function(r){ var hd = hDetailCI(r.handle); return hd && hd.d30 ? hd.d30 : 0; }).filter(function(x){ return x > 0; });
       var ourD30 = d30vals.length >= Math.ceil(ours.length / 2) ? med(d30vals) : null;
       out += '<tr><td>' + b.lbl + '</td>' +
