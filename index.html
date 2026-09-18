@@ -248,9 +248,11 @@ details.fold.subtle .ladder{border-top:0;margin-top:8px;padding-top:0}
   font-variant-numeric:tabular-nums}
 .ladrow .lv input:focus{border-color:var(--ink);outline:2px solid var(--ink);outline-offset:-1px}
 .ladrow .lv input::placeholder{color:var(--muted);font-weight:400}
+.ladrow .lstack{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
 .ladrow .ls{font-size:12.5px;font-weight:700;text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}
 .ladrow .ls.ok{color:var(--ink)}
 .ladrow .ls.bad{color:var(--danger)}
+.ladrow .lsprev{font-size:10.5px;font-weight:500;color:var(--muted);font-variant-numeric:tabular-nums}
 .cutline .hinttap{font-size:11.5px;color:var(--muted);margin:13px 0 0;line-height:1.6}
 .cutline .none{font-size:12.5px;color:var(--ink-2);line-height:1.6;margin:0 0 14px}
 @media (max-width:520px){.ladrow{grid-template-columns:56px 90px 1fr;gap:9px;padding-left:11px}}
@@ -1342,6 +1344,7 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
 
     var rows = defs.map(function(x){
       var sc = vals[x.f];
+      var prevSc = e && e.prev ? e.prev["f"+x.f] : null;
       var cls = hitF===x.f ? " hit" : (hitF===-1 && x.f===0 ? " below" : "");
       var st;
       if(d == null){
@@ -1359,7 +1362,9 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
         '<span class="lk">' + x.k + '</span>' +
         '<span class="lv"><input type="text" inputmode="numeric" autocomplete="off" data-frag="' + x.f + '" ' +
           'value="' + (sc!=null ? fmt(sc) : "") + '" placeholder="—" aria-label="' + x.k + ' 컷 다이아"></span>' +
-        st +
+        '<span class="lstack">' + st +
+          (prevSc != null ? '<span class="lsprev">어제 ' + fmt(prevSc) + '</span>' : '') +
+        '</span>' +
       '</div>';
     }).join("");
 
