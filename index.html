@@ -1426,9 +1426,10 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
         var score = scoreOf(e, fragments);
         var prev = e && e.prev ? e.prev["f"+fragments] : null;
         var rowEst = row && row.estimated;
-        var meta = (hasRank ? row.rank + '위 · ' : '') + '상위 ' + Math.round(pct*100) + '%' + (rowEst ? ' · 추정' : '');
+        var meta = (hasRank ? row.rank + '위 · ' : '') + '상위 ' + Math.round(pct*100) + '%' + (rowEst ? ' · 추정' : '') + (prev != null ? ' · 어제 ' + fmt(prev) : '');
         if(score == null){
-          return '<td data-l="' + label + '"><span class="no">' + (hasRank ? row.rank + '위 · ' : '') + '상위 ' + Math.round(pct*100) + '%</span></td>';
+          return '<td data-l="' + label + '"><span class="no">' + (hasRank ? row.rank + '위 · ' : '') + '상위 ' + Math.round(pct*100) + '%</span>' +
+                 (prev != null ? '<span class="cutmeta">어제 ' + fmt(prev) + '</span>' : '') + '</td>';
         }
         return '<td data-l="' + label + '"><span class="cutv">' + fmt(score) + deltaChip(score, prev) +
                '</span><span class="cutmeta">' + meta + '</span></td>';
@@ -2118,7 +2119,7 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
     osea:"해외 라인 — 되돌리지 말고 최적화",
     ok:"이상 없음", idle:"방송 거의 없음"
   };
-  var DIAG_ORDER = ["우선 개입", "신인 골든타임 — 지금 코칭", "끌어올릴 수 있음 — 시간만 늘리면", "정체 — 볼륨·유입 한 끗 부족", "신인 — 관리 필요", "해외 라인 — 되돌리지 말고 최적화", "방송 거의 없음", "이상 없음"];
+  var DIAG_ORDER = ["우선 개입", "신인 골든타임 — 지금 코칭", "끌어올릴 수 있음 — 시간만 늘리면", "정체 — 볼륨·유입 한 끗 부족", "신인 — 관리 필요", "해외 라인 — 되돌리지 말고 최적화", "이상 없음"];
 
   function renderRosterDiag(rows){
     var el = $("rosterDiag");
