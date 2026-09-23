@@ -18,7 +18,7 @@
   const TOKEN = "PASTE_GITHUB_FINE_GRAINED_TOKEN_HERE"; // ← GitHub 토큰 붙여넣기
   /* ═══════════════════════════════════════════ */
 
-  const MIN_GAP_MIN = 55; // 최근 이 시간(분) 안에 이미 올렸으면 스킵
+  const MIN_GAP_MIN = 4; // 최근 이 시간(분) 안에 이미 올렸으면 스킵 — 저녁엔 5분 간격으로 방문하므로 낮춤
   const LS = "offair_tikdo_push_at";
 
   const now = Date.now();
