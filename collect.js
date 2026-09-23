@@ -166,6 +166,16 @@ async function fetchHostPage(uid) {
     const am = pay.match(/"(?:avatarUrl|image)":"(https:\/\/[^"]+tiktokcdn[^"]+)"/);
     if (am) avatar = am[1];
   }
+  // pay 는 __next_f.push 청크만 모은 것 — "image"가 JSON-LD·og:image처럼
+  // 그 밖(청크 밖)에 있는 페이지가 많아 위 두 시도가 놓친다. 원본 HTML을 한 번 더 본다.
+  if (!avatar) {
+    try {
+      const raw = await getText("https://www.tikple.com/host/u/" + uid);
+      const am2 = raw.match(/"(?:avatarUrl|image)":"(https:\/\/[^"]+tiktokcdn[^"]+)"/) ||
+        raw.match(/property="og:image" content="(https:\/\/[^"]+tiktokcdn[^"]+)"/);
+      if (am2) avatar = am2[1];
+    } catch (e) {}
+  }
   if (avatar) avatar = avatar.replace(/\\u0026/g, "&").replace(/\\\//g, "/");
 
   if (h) {
