@@ -781,33 +781,9 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
 <!-- 우리 호스트 대시보드 -->
 <section class="block" id="roster">
   <h2>우리 호스트</h2>
-  <p class="sub"><b id="rosterSum">아직 없습니다.</b> 소속 호스트의 <b>효율(다이아÷시간)</b>·<b>해외 비율</b>(알고리즘이 한국인지 외국인지)·<b>노출</b>을 한 판에. 최신화하려면 백스테이지 <span class="num">데이터 → 크리에이터 데이터</span> 페이지를 <span class="num">Ctrl+A</span>로 통째 복사해 아래에 붙여넣으세요. 리그·순위는 위 랭킹과 자동으로 맞춰집니다.</p>
+  <p class="sub"><b id="rosterSum">아직 없습니다.</b> 소속 호스트의 <b>효율(다이아÷시간)</b>·<b>해외 비율</b>(알고리즘이 한국인지 외국인지)·<b>노출</b>을 한 판에. 매일 자동으로 백스테이지 데이터를 확인해 갱신합니다. 리그·순위는 위 랭킹과 자동으로 맞춰집니다.</p>
   <div class="panel">
-    <details class="fold" id="rosterInput">
-      <summary><h2>백스테이지 붙여넣기</h2> <span class="savenote" id="rosterInputSum"></span></summary>
-      <div class="panel">
-        <div class="field">
-          <label for="bsCreator">① 크리에이터 데이터</label>
-          <textarea id="bsCreator" placeholder="백스테이지 › 데이터 › 크리에이터 데이터 → 페이지에서 Ctrl+A → Ctrl+C → 여기 붙여넣기.&#10;페이지가 여러 장이면 넘겨가며 각 장을 이어 붙이면 됩니다."></textarea>
-          <span class="hint">총다이아·라이브시간·유효일·새팔로워·해외 비율·노출·시청자를 읽습니다.</span>
-        </div>
-        <div class="field">
-          <label for="bsOversea">② 해외 분석 <span style="color:var(--muted);font-weight:400">(선택)</span></label>
-          <textarea id="bsOversea" placeholder="백스테이지 › 데이터 › 해외 분석 → ‘해외에서 잠재력이 높은 크리에이터’ 표 부분을 복사해 붙여넣기" style="min-height:110px"></textarea>
-          <span class="hint">해외 고정 호스트의 주요 지역(브라질·중동·태국 등)을 채웁니다.</span>
-        </div>
-        <div class="field">
-          <label for="bsDays">③ 수집 기간(일) <span style="color:var(--muted);font-weight:400">백스테이지에서 고른 기간이 며칠인지</span></label>
-          <input type="number" id="bsDays" min="1" max="31" value="6" style="max-width:100px">
-          <span class="hint">"이번 주"=6~7일, "이번 달"=오늘까지 날짜 수. 월 환산(다이아÷기간×30) 계산에 씁니다 — 틀리면 "이번 주 페이스" 숫자가 다 틀어져요.</span>
-        </div>
-        <div class="cutbar">
-          <button class="btn" type="button" id="rosterBtn">불러오기</button>
-          <button class="btn ghost" type="button" id="rosterClear">전체 지우기</button>
-          <span class="savenote" id="rosterNote"></span>
-        </div>
-      </div>
-    </details>
+    <p class="savenote" id="rosterInputSum" style="margin:0 0 4px"></p>
 
     <p id="rosterEmpty" class="sub" style="margin:0" hidden></p>
     <div id="rosterWrap" hidden>
@@ -1912,26 +1888,6 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
     return {added:added, updated:updated, oMatched:oMatched};
   }
 
-  function importRoster(){
-    var note = $("rosterNote");
-    var a = parseBackstage($("bsCreator").value);
-    var o = parseOverseas($("bsOversea").value);
-    if(!a.length && !o.length){
-      note.textContent = "읽을 수 있는 호스트를 못 찾았습니다. 표 전체(닉네임·ID 포함)를 복사했는지 확인하세요.";
-      return;
-    }
-    var tm = $("bsCreator").value.match(/(\d+)\s*중\s*\d+/);
-    roster.days = parseInt($("bsDays").value, 10) || 6;
-    var r = mergeRosterData(a, o, tm ? parseInt(tm[1], 10) : null);
-    var msg = [];
-    if(r.added) msg.push("추가 " + r.added);
-    if(r.updated) msg.push("갱신 " + r.updated);
-    if(o.length) msg.push("해외분석 " + r.oMatched + "/" + o.length + " 매칭");
-    note.textContent = msg.join(" · ") + " 완료";
-    $("bsCreator").value = ""; $("bsOversea").value = "";
-    renderRoster();
-  }
-
   /* 유저스크립트(scripts/backstage-userscript.user.js)가 커밋해둔
      data/backstage-creator-data.json 자동 반영 — 붙여넣기보다 최신일 때만. */
   function applyRemoteRoster(data){
@@ -2371,7 +2327,7 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
       sum.textContent = "아직 없습니다.";
       ctl.hidden = true; wrap.hidden = true;
       empty.hidden = false;
-      empty.textContent = "위 ‘백스테이지 붙여넣기’를 열어 크리에이터 데이터 표를 붙여넣으세요.";
+      empty.textContent = "아직 수집된 데이터가 없습니다. 매일 자동으로 확인해 채워집니다.";
       return;
     }
     empty.hidden = true; ctl.hidden = false; wrap.hidden = false;
@@ -2456,14 +2412,6 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
     sum.textContent = "활동 " + keys.length + "명 · 지금 손봐야 " + urgent + "명" + (dormant ? " · 휴면 " + dormant + "명" : "");
   }
 
-  $("rosterBtn").addEventListener("click", importRoster);
-  $("rosterClear").addEventListener("click", function(){
-    if(!confirm("저장된 우리 호스트 목록을 전부 지웁니다. 계속할까요?")) return;
-    roster = {hosts:{}, at:null};
-    saveRoster();
-    renderRoster();
-    $("rosterNote").textContent = "지웠습니다.";
-  });
   function setRosterSort(mode){
     rosterSort = mode;
     [["eff","rsEff"],["dia","rsDia"],["flag","rsFlag"]].forEach(function(p){
