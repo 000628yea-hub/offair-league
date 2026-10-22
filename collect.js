@@ -213,7 +213,7 @@ async function fetchHostPage(uid) {
 async function enrichAvatars(out, opts) {
   opts = opts || {};
   const MAX = opts.max != null ? opts.max : 250;
-  const FRESH_MS = 30 * 60 * 60 * 1000; // 30시간 (틱플 사진 URL은 ~2일 유효)
+  const FRESH_MS = 40 * 60 * 60 * 1000; // 40시간 (틱플 사진 URL은 ~2일 유효)
   const DETAIL_MS = 20 * 60 * 60 * 1000; // 상세는 20시간마다 갱신
   const cache = loadAvatars();
   const hosts = loadHosts();

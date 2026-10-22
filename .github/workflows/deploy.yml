@@ -49,7 +49,7 @@ jobs:
       # tikdo-cuts.json 으로 커밋해 두고, collect.js 가 그 파일을 읽어 병합한다.
       # (tikdo 는 Vercel 봇차단이라 GitHub·Worker 등 데이터센터 IP로는 못 긁음)
       - name: 데이터 수집
-        run: node collect.js --photos 80 || echo "::warning::collect.js 실패 — 이전 데이터로 배포합니다"
+        run: node collect.js --photos 500 || echo "::warning::collect.js 실패 — 이전 데이터로 배포합니다"
 
       - name: 데이터 캐시 저장
         if: always()
