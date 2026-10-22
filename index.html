@@ -1,13 +1,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>OFF-AIR 리그 조각 계산기</title>
-<meta name="description" content="TikTok LIVE 크리에이터 리그 조각·승급 계산. 리그별 랭킹, 컷라인, 우리 호스트 대시보드. OFF-AIR E&M 운영팀.">
+<meta name="description" content="TikTok LIVE 크리에이터 리그 조각·승급 계산. 리그별 랭킹, 컷라인. OFF-AIR E&M 운영팀.">
 <meta name="robots" content="noindex, nofollow">
 <meta name="color-scheme" content="dark light">
 <meta name="theme-color" content="#0A0A0A" media="(prefers-color-scheme: dark)">
 <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
 <meta property="og:title" content="OFF-AIR 리그 조각 계산기">
-<meta property="og:description" content="리그 조각·승급 계산 + 리그별 랭킹 + 우리 호스트 대시보드">
+<meta property="og:description" content="리그 조각·승급 계산 + 리그별 랭킹">
 <meta property="og:type" content="website">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230A0A0A'/%3E%3Ctext x='16' y='22' font-family='Archivo,Arial,sans-serif' font-size='15' font-weight='900' fill='%23fff' text-anchor='middle'%3EOA%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -611,7 +611,7 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
   <h1><b>리그 조각</b><b class="dim">계산기</b></h1>
   <p class="lede">현재 리그와 지금까지 받은 다이아를 넣으면, <b>오늘 조각 몇 개</b> 받는지 · <b>승급까지 며칠</b> 남았는지 바로 나옵니다.</p>
   <p class="herometa">
-    <span>오늘 조각</span><span>승급 D-day</span><span>리그별 컷</span><span>우리 호스트</span>
+    <span>오늘 조각</span><span>승급 D-day</span><span>리그별 컷</span>
   </p>
 </header>
 
@@ -621,8 +621,7 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
   <ol>
     <li><a href="#calc"><span class="n">01</span><span class="t">리그 조각 계산기</span><span class="p">계산</span></a></li>
     <li><a href="#ranking"><span class="n">02</span><span class="t">리그별 랭킹</span><span class="p">A1–D5</span></a></li>
-    <li><a href="#roster"><span class="n">03</span><span class="t">우리 호스트</span><span class="p">대시보드</span></a></li>
-    <li><a href="#rules"><span class="n">04</span><span class="t">리그 규칙 요약</span><span class="p">참고</span></a></li>
+    <li><a href="#rules"><span class="n">03</span><span class="t">리그 규칙 요약</span><span class="p">참고</span></a></li>
   </ol>
 </nav>
 
@@ -779,7 +778,7 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
 </section>
 
 <!-- 우리 호스트 대시보드 -->
-<section class="block" id="roster">
+<section class="block" id="roster" hidden>
   <h2>우리 호스트</h2>
   <p class="sub"><b id="rosterSum">아직 없습니다.</b> 소속 호스트의 <b>효율(다이아÷시간)</b>·<b>해외 비율</b>(알고리즘이 한국인지 외국인지)·<b>노출</b>을 한 판에. 매일 자동으로 백스테이지 데이터를 확인해 갱신합니다. 리그·순위는 위 랭킹과 자동으로 맞춰집니다.</p>
   <div class="panel">
@@ -1891,12 +1890,13 @@ footer::after{content:"“OFF-AIR”";font-family:'Archivo',sans-serif;font-weig
   /* 유저스크립트(scripts/backstage-userscript.user.js)가 커밋해둔
      data/backstage-creator-data.json 자동 반영 — 붙여넣기보다 최신일 때만. */
   function applyRemoteRoster(data){
-    if(!data || !data.text || !data.savedAtMs) return;
-    if(roster.at && roster.at >= data.savedAtMs) return; // 이미 더 최신(수동 붙여넣기 등)
-    var a = parseBackstage(data.text);
+    if(!data || !(data.rows || data.text) || !data.savedAtMs) return;
+    if(roster.at && roster.at >= data.savedAtMs) return; // 이미 더 최신
+    var a = data.rows || parseBackstage(data.text);
     if(!a.length) return;
-    var tm = data.text.match(/(\d+)\s*중\s*\d+/);
-    mergeRosterData(a, [], tm ? parseInt(tm[1], 10) : null);
+    var tm = data.text ? data.text.match(/(\d+)\s*중\s*\d+/) : null;
+    if(data.days) roster.days = data.days;
+    mergeRosterData(a, [], data.total || (tm ? parseInt(tm[1], 10) : null));
     roster.at = data.savedAtMs; // 병합 시각이 아니라 실제 수집 시각으로
     saveRoster();
     renderRoster();
